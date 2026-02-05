@@ -6,8 +6,6 @@ import { usePathname } from "next/navigation";
 import {
   ArrowUpRight,
   MessageSquare,
-  Settings,
-  Share2,
   AlertTriangle,
   Eye,
   Heart,
@@ -42,13 +40,6 @@ export type HomePost = {
   stats: { views: number; likes: number; comments: number };
 };
 
-const TELEMETRY_DATA = [
-  { label: "SEARCH", value: "24ms", saas: "Algolia Search Engine" },
-  { label: "AI_NODE", value: "142ms", saas: "Gemini 2.5 Flash" },
-  { label: "STORAGE", value: "12ms", saas: "Firestore DB" },
-  { label: "EDGE", value: "8ms", saas: "Vercel Edge CDN" },
-];
-
 export default function HomeView({
   posts,
   viewer,
@@ -77,7 +68,6 @@ export default function HomeView({
   const PAGE_SIZE = 9;
   const pathname = usePathname();
   const [systemLoad, setSystemLoad] = useState("0.42");
-  const [scrollProgress, setScrollProgress] = useState(0);
   const theme = useEffectiveTheme(initialTheme);
   const flashSystemMsg = useUIStore((state) => state.flashSystemMsg);
   const [feedPosts, setFeedPosts] = useState<HomePost[]>(posts);
@@ -114,19 +104,12 @@ export default function HomeView({
   };
 
   useEffect(() => {
-    const handleScroll = () => {
-      const totalHeight =
-        document.documentElement.scrollHeight - window.innerHeight;
-      setScrollProgress((window.scrollY / totalHeight) * 100);
-    };
     const loadInterval = setInterval(
       () => setSystemLoad((Math.random() * 0.8 + 0.1).toFixed(2)),
       5000,
     );
 
-    window.addEventListener("scroll", handleScroll);
     return () => {
-      window.removeEventListener("scroll", handleScroll);
       clearInterval(loadInterval);
     };
   }, []);
@@ -894,61 +877,6 @@ export default function HomeView({
         )}
       </main>
 
-      <footer
-        className={`fixed bottom-0 w-full z-50 ${
-          isDark ? "bg-black border-zinc-800" : "bg-white border-zinc-200"
-        } border-t text-[10px] font-bold h-10 flex flex-col justify-center transition-colors duration-150`}
-      >
-        <div
-          className="absolute top-0 left-0 h-[2px] bg-[#00ff41] shadow-[0_0_10px_#00ff41]"
-          style={{ width: `${scrollProgress}%` }}
-        ></div>
-
-        <div
-          className={`max-w-screen-2xl mx-auto h-full px-6 flex justify-between items-center ${mutedText} w-full`}
-        >
-          <div className="flex items-center space-x-8">
-            {TELEMETRY_DATA.map((item) => (
-              <div
-                key={item.label}
-                className="flex flex-col group cursor-help relative"
-                title={`SaaS Hub: ${item.saas}`}
-              >
-                <span
-                  className={`text-[8px] tracking-tighter ${
-                    isDark ? "text-zinc-700" : "text-zinc-500"
-                  }`}
-                >
-                  {item.label}
-                </span>
-                <span className="text-[#00ff41] group-hover:text-white transition-colors">
-                  {item.value}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div
-            className={`hidden lg:flex items-center space-x-6 border-l ${borderColor} pl-8 h-6`}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                navigator.clipboard.writeText(window.location.href);
-                notify("LINK_COPIED_TO_CLIPBOARD");
-              }}
-              className="flex items-center space-x-2 cursor-pointer hover:text-white transition-colors uppercase font-black"
-            >
-              <Share2 className="w-3 h-3 text-[#00ff41]" />
-              <span>Share_Intel</span>
-            </button>
-            <Settings
-              className="w-4 h-4 hover:text-white cursor-pointer"
-              onClick={() => notify("CONFIG_MODULE_LOCKED")}
-            />
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
