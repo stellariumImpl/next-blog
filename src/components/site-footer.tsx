@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Copy, Home, Music3 } from "lucide-react";
 import { useUIStore } from "@/store/ui";
+import { useAudioStore } from "@/store/audio";
 
 type RuntimeInfo = {
   ping: string;
@@ -40,6 +41,7 @@ export default function SiteFooter() {
   const [info, setInfo] = useState<RuntimeInfo>(DEFAULT_INFO);
   const [copied, setCopied] = useState(false);
   const flashSystemMsg = useUIStore((state) => state.flashSystemMsg);
+  const openAudioDock = useAudioStore((state) => state.open);
   const browserInfo = useMemo(() => {
     if (typeof navigator === "undefined") return DEFAULT_INFO;
     const ua = navigator.userAgent;
@@ -130,10 +132,14 @@ export default function SiteFooter() {
           </button>
         </div>
 
-        <div className="flex items-center gap-2 text-[9px] font-bold tracking-[0.35em]">
+        <button
+          type="button"
+          onClick={openAudioDock}
+          className="flex items-center gap-2 text-[9px] font-bold tracking-[0.35em] hover:text-[color:var(--app-text)] transition-colors"
+        >
           <Music3 className="h-3.5 w-3.5" />
           <span>Audio Dock</span>
-        </div>
+        </button>
       </div>
     </footer>
   );

@@ -114,6 +114,8 @@ export default function HomeView({
     };
   }, []);
 
+  const isDark = theme === "dark";
+
   useEffect(() => {
     const sorted = [...initialTagSlugs].sort();
     const matchKey = sorted.length > 1 ? initialMatch : "any";
@@ -341,7 +343,6 @@ export default function HomeView({
     featuredTags.forEach((tag) => map.set(tag.slug, tag.name));
     return map;
   }, [featuredTags, tagLookup]);
-  const isDark = theme === "dark";
   const bgColor = isDark ? "bg-black" : "bg-[#f6f1e7]";
   const textColor = isDark ? "text-[#00ff41]" : "text-zinc-900";
   const cardBg = isDark ? "bg-black" : "bg-white";
