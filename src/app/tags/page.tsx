@@ -183,7 +183,7 @@ export default async function TagsPage() {
                 {myRequestCount} total
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {myTagRequests.map((request) => (
                 <div key={request.id} className="border app-border panel-bg p-4">
                   <div className="flex items-center justify-between gap-3">
