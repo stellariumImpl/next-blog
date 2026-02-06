@@ -591,14 +591,14 @@ export default function HomeView({
                   type="date"
                   value={dateFrom}
                   onChange={(event) => handleFromChange(event.target.value)}
-                  className="border app-border bg-transparent px-2 py-1 text-[10px] uppercase tracking-[0.3em] app-muted focus:border-[var(--app-text)] outline-none"
+                  className="border app-border bg-transparent px-2 py-1 text-[9px] sm:text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none w-[128px] sm:w-auto"
                 />
                 <span className="text-[10px] app-muted">→</span>
                 <input
                   type="date"
                   value={dateTo}
                   onChange={(event) => handleToChange(event.target.value)}
-                  className="border app-border bg-transparent px-2 py-1 text-[10px] uppercase tracking-[0.3em] app-muted focus:border-[var(--app-text)] outline-none"
+                  className="border app-border bg-transparent px-2 py-1 text-[9px] sm:text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none w-[128px] sm:w-auto"
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -632,7 +632,7 @@ export default function HomeView({
                 </button>
               </div>
             </div>
-            <div className="flex space-x-2">
+            <div className="hidden md:flex space-x-2">
               <span className="w-2 h-2 bg-zinc-800 rounded-full"></span>
               <span className="w-2 h-2 bg-zinc-800 rounded-full"></span>
               <span className="w-2 h-2 bg-[#00ff41] rounded-full"></span>

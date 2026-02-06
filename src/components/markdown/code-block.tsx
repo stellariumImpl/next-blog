@@ -44,7 +44,7 @@ export default function CodeBlock({
       {/* Header bar */}
       <div className="flex items-center justify-between px-4 py-1 border-b border-[color:var(--border)] bg-[color:var(--panel-bg)]">
         <div className="flex items-center gap-3">
-          <div className="flex gap-1.5">
+          <div className="hidden md:flex gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]"></div>
             <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]"></div>
             <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]"></div>

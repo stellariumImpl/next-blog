@@ -303,7 +303,12 @@ html.spotlight-on.spotlight-dark body::before {
 }
 
 .markdown-content img {
-  max-width: 100%;
+  display: block;
+  max-width: min(100%, 720px);
+  max-height: 70vh;
+  width: auto;
+  height: auto;
+  margin: 1rem auto;
   border-radius: 10px;
   border: 1px solid var(--border);
 }

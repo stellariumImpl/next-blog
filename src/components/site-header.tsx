@@ -383,7 +383,7 @@ export default function SiteHeader({
                 placeholder="QUERY_THE_VOID..."
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                className={`bg-transparent flex-grow outline-none text-3xl font-black uppercase ${
+                className={`bg-transparent flex-grow min-w-0 outline-none text-xl md:text-3xl font-black uppercase ${
                   isDark
                     ? "text-[#00ff41] placeholder:text-zinc-800"
                     : "text-[color:var(--app-text)] placeholder:text-[color:var(--text-muted)]"
@@ -393,7 +393,7 @@ export default function SiteHeader({
                 }
               />
               <div
-                className={`text-[10px] ${isDark ? "text-zinc-700" : "text-[color:var(--text-muted)]"}`}
+                className={`text-[10px] hidden md:inline ${isDark ? "text-zinc-700" : "text-[color:var(--text-muted)]"}`}
               >
                 ESC_TO_ABORT
               </div>
