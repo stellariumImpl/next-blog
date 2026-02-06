@@ -328,7 +328,7 @@ export default function SiteHeader({
               <Tag className="w-3 h-3" />
               <span className="hidden md:inline">TAGS</span>
             </Link>
-            {showFilter && (
+            {/* {showFilter && (
               <button
                 type="button"
                 onClick={() => setFilterOpen(true)}
@@ -340,7 +340,7 @@ export default function SiteHeader({
                   {selectedTags.length > 0 ? ` (${selectedTags.length})` : ""}
                 </span>
               </button>
-            )}
+            )} */}
 
             <span className={`${mutedText} opacity-70 hidden md:inline`}>|</span>
 
@@ -611,7 +611,7 @@ export default function SiteHeader({
         </div>
       )}
 
-      {showFilter && filterOpen && (
+      {/* {showFilter && filterOpen && (
         <div
           className="fixed inset-0 z-[100] flex items-start justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
           onClick={() => setFilterOpen(false)}
@@ -751,7 +751,7 @@ export default function SiteHeader({
             </div>
           </div>
         </div>
-      )}
+      )} */}
     </>
   );
 }
