@@ -320,6 +320,40 @@ html.spotlight-on.spotlight-dark body::before {
   padding: 0.5rem;
 }
 
+@media (max-width: 768px) {
+  .markdown-content {
+    overflow-x: hidden;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    hyphens: auto;
+  }
+
+  .markdown-content pre {
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .markdown-content table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .markdown-content img,
+  .markdown-content iframe,
+  .markdown-content video,
+  .markdown-content embed,
+  .markdown-content svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .markdown-content code {
+    word-break: break-word;
+  }
+}
+
 :root[data-theme="light"] [class*="text-[#00ff41"] {
   color: var(--accent) !important;
 }

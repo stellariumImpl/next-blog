@@ -285,8 +285,8 @@ export default function SiteHeader({
       <nav
         className={`fixed top-0 w-full z-50 border-b ${borderColor} ${navBg} ${navText} backdrop-blur-md`}
       >
-        <div className="max-w-screen-2xl mx-auto px-4 h-12 flex justify-between items-center text-[10px] uppercase font-bold tracking-tight">
-          <div className="flex items-center space-x-6">
+        <div className="max-w-screen-2xl mx-auto px-4 h-12 flex items-center justify-between text-[10px] uppercase font-bold tracking-tight">
+          <div className="flex items-center space-x-4 md:space-x-6 shrink-0">
             <Link
               href={homeHref}
               className="flex items-center space-x-2 bg-zinc-900 text-white px-2 py-1 border border-zinc-700"
@@ -301,7 +301,7 @@ export default function SiteHeader({
             )}
           </div>
 
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center justify-end gap-3 md:gap-6">
             <Link href="/archive" className={archiveClasses}>
               <Archive className="w-3 h-3" />
               <span className="hidden md:inline">ARCHIVE</span>
@@ -324,7 +324,7 @@ export default function SiteHeader({
               </button>
             )}
 
-            <span className={`${mutedText} opacity-70`}>|</span>
+            <span className={`${mutedText} opacity-70 hidden md:inline`}>|</span>
 
             <button onClick={handleSearch} className={searchClasses}>
               <Search className="w-3 h-3" />

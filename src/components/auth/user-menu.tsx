@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, User } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 
 export type Viewer = {
@@ -21,7 +21,7 @@ export default function UserMenu({
   const [loading, setLoading] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const buttonClasses =
-    "flex items-center gap-2 border px-3 py-1 text-[10px] uppercase tracking-[0.3em] transition h-6 app-border text-[color:var(--app-text)] hover:bg-[color:var(--app-text)] hover:text-[color:var(--app-bg)]";
+    "flex items-center gap-1 md:gap-2 border px-2 md:px-3 py-1 text-[10px] uppercase tracking-[0.3em] transition h-6 app-border text-[color:var(--app-text)] hover:bg-[color:var(--app-text)] hover:text-[color:var(--app-bg)]";
   const menuClasses =
     "absolute right-0 mt-3 w-48 border text-[10px] uppercase tracking-[0.3em] shadow-lg app-border card-bg text-[color:var(--app-text)]";
   const itemClasses =
@@ -52,8 +52,13 @@ export default function UserMenu({
 
   if (!viewer) {
     return (
-      <Link href="/sign-in" className={`${buttonClasses} justify-center`}>
-        Sign In
+      <Link
+        href="/sign-in"
+        className={`${buttonClasses} justify-center`}
+        aria-label="Sign In"
+      >
+        <User className="h-3 w-3 md:hidden" />
+        <span className="hidden md:inline">Sign In</span>
       </Link>
     );
   }
@@ -66,9 +71,13 @@ export default function UserMenu({
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         className={buttonClasses}
+        aria-label="User menu"
       >
-        <span className="max-w-[120px] truncate">{displayName}</span>
-        <ChevronDown className="h-3 w-3" />
+        <User className="h-3 w-3 md:hidden" />
+        <span className="hidden md:inline max-w-[120px] truncate">
+          {displayName}
+        </span>
+        <ChevronDown className="h-3 w-3 hidden md:inline" />
       </button>
 
       {open && (

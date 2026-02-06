@@ -125,21 +125,21 @@ export default function AudioDock() {
     <>
       <audio ref={audioRef} preload="metadata" />
       {isOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
-          <div className="w-full max-w-2xl border app-border panel-bg p-6 shadow-[0_0_60px_rgba(0,0,0,0.35)]">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-[color:var(--accent)]/20 flex items-center justify-center text-[color:var(--accent)] font-black">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-6">
+          <div className="w-full max-w-2xl max-h-[90vh] md:max-h-[80vh] overflow-hidden border app-border panel-bg p-4 md:p-6 shadow-[0_0_60px_rgba(0,0,0,0.35)]">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-start gap-3 min-w-0">
+                <div className="h-9 w-9 md:h-10 md:w-10 rounded-full bg-[color:var(--accent)]/20 flex items-center justify-center text-[color:var(--accent)] font-black shrink-0">
                   ♪
                 </div>
-                <div>
-                  <div className="text-xs uppercase tracking-[0.4em] app-muted">
+                <div className="min-w-0">
+                  <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] app-muted">
                     Currently Playing
                   </div>
-                  <div className="text-lg font-semibold app-text">
+                  <div className="text-base md:text-lg font-semibold app-text break-words">
                     {currentTrack?.title ?? "No track selected"}
                   </div>
-                  <div className="text-xs app-muted">
+                  <div className="text-xs app-muted break-words">
                     {currentTrack?.artist ?? "Add audio sources in audio-playlist.ts"}
                   </div>
                 </div>
@@ -147,7 +147,7 @@ export default function AudioDock() {
               <button
                 type="button"
                 onClick={close}
-                className="h-8 w-8 flex items-center justify-center border app-border hover:border-[color:var(--accent)] transition"
+                className="h-8 w-8 flex items-center justify-center border app-border hover:border-[color:var(--accent)] transition self-end md:self-auto"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -161,7 +161,7 @@ export default function AudioDock() {
               ) : (
                 <div
                   ref={listRef}
-                  className="max-h-[44vh] overflow-y-auto pr-2 space-y-3"
+                  className="max-h-[36vh] sm:max-h-[40vh] md:max-h-[44vh] overflow-y-auto pr-2 space-y-3"
                 >
                   {safeTracks.map((track, index) => {
                     const active = tracks[currentIndex]?.id === track.id;
@@ -174,20 +174,22 @@ export default function AudioDock() {
                           setCurrentIndex(index);
                           setPlaying(true);
                         }}
-                        className={`flex w-full items-center justify-between gap-4 border app-border px-4 py-3 text-left transition ${
+                        className={`flex w-full flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border app-border px-4 py-3 text-left transition ${
                           active
                             ? "border-[color:var(--accent)]/70 shadow-[0_0_20px_rgba(0,0,0,0.2)]"
                             : "hover:border-[color:var(--accent)]/40"
                         }`}
                       >
-                        <div>
-                          <div className="text-sm font-semibold app-text">
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold app-text break-words">
                             {track.title}
                           </div>
-                          <div className="text-xs app-muted">{track.artist}</div>
+                          <div className="text-xs app-muted break-words">
+                            {track.artist}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] uppercase tracking-[0.3em] app-muted">
+                        <div className="flex items-center gap-2 sm:justify-end">
+                          <span className="text-[9px] md:text-[10px] uppercase tracking-[0.3em] app-muted">
                             {active ? "Playing" : "Queued"}
                           </span>
                           <div
@@ -214,31 +216,37 @@ export default function AudioDock() {
             </div>
 
             <div className="mt-6 border-t app-border pt-4">
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center">
+                <div className="flex items-center justify-center gap-3 md:gap-4 md:justify-start">
                 <button
                   type="button"
                   onClick={prev}
-                  className="h-10 w-10 flex items-center justify-center border app-border hover:border-[color:var(--accent)] transition"
+                  className="h-9 w-9 md:h-10 md:w-10 flex items-center justify-center border app-border hover:border-[color:var(--accent)] transition"
                 >
                   <SkipBack className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
                   onClick={handlePlayPause}
-                  className="h-12 w-12 flex items-center justify-center border app-border text-[color:var(--accent)] hover:border-[color:var(--accent)] transition"
+                  className="h-11 w-11 md:h-12 md:w-12 flex items-center justify-center border app-border text-[color:var(--accent)] hover:border-[color:var(--accent)] transition"
                 >
-                  {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                  {isPlaying ? (
+                    <Pause className="h-5 w-5" />
+                  ) : (
+                    <Play className="h-5 w-5" />
+                  )}
                 </button>
                 <button
                   type="button"
                   onClick={next}
-                  className="h-10 w-10 flex items-center justify-center border app-border hover:border-[color:var(--accent)] transition"
+                  className="h-9 w-9 md:h-10 md:w-10 flex items-center justify-center border app-border hover:border-[color:var(--accent)] transition"
                 >
                   <SkipForward className="h-4 w-4" />
                 </button>
+                </div>
 
-                <div className="flex-1">
-                  <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.3em] app-muted mb-2">
+                <div className="flex-1 w-full">
+                  <div className="flex items-center justify-between text-[9px] md:text-[10px] uppercase tracking-[0.3em] app-muted mb-2">
                     <span>{formatTime(currentTime)}</span>
                     <span>{formatTime(duration)}</span>
                   </div>
@@ -253,8 +261,8 @@ export default function AudioDock() {
                   />
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Volume2 className="h-4 w-4" />
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                  <Volume2 className="h-4 w-4 shrink-0" />
                   <input
                     type="range"
                     min={0}
@@ -262,7 +270,7 @@ export default function AudioDock() {
                     step={0.01}
                     value={volume}
                     onChange={(event) => setVolume(Number(event.target.value))}
-                    className="w-24 accent-[color:var(--accent)]"
+                    className="w-full md:w-24 accent-[color:var(--accent)]"
                   />
                 </div>
               </div>

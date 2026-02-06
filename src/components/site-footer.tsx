@@ -96,7 +96,7 @@ export default function SiteFooter() {
   }, [copied]);
 
   return (
-    <footer className="fixed bottom-0 w-full z-40 border-t app-border panel-bg backdrop-blur-md">
+    <footer className="fixed bottom-0 w-full z-40 border-t app-border panel-bg backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
       <div className="max-w-screen-2xl mx-auto h-10 px-6 flex items-center gap-6 overflow-x-auto whitespace-nowrap text-[10px] uppercase tracking-[0.3em] app-muted [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex items-center gap-4 min-w-max">
           <Link
