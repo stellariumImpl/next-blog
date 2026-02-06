@@ -14,8 +14,10 @@ export type Viewer = {
 
 export default function UserMenu({
   viewer,
+  hardNavigate = false,
 }: {
   viewer: Viewer | null;
+  hardNavigate?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -51,15 +53,16 @@ export default function UserMenu({
   };
 
   if (!viewer) {
+    const SignInLink = hardNavigate ? "a" : Link;
     return (
-      <Link
+      <SignInLink
         href="/sign-in"
         className={`${buttonClasses} justify-center`}
         aria-label="Sign In"
       >
         <User className="h-3 w-3 md:hidden" />
         <span className="hidden md:inline">Sign In</span>
-      </Link>
+      </SignInLink>
     );
   }
 
@@ -82,32 +85,34 @@ export default function UserMenu({
 
       {open && (
         <div className={menuClasses}>
-          <Link
-            href="/submit"
-           
-            className={itemClasses}
-            onClick={() => setOpen(false)}
-          >
-            Submit Article
-          </Link>
-          <Link
-            href="/account"
-           
-            className={itemClasses}
-            onClick={() => setOpen(false)}
-          >
-            Account
-          </Link>
-          {viewer.role === "admin" && (
-            <Link
-              href="/admin"
-             
-              className={itemClasses}
-              onClick={() => setOpen(false)}
-            >
-              Admin
+          {hardNavigate ? (
+            <a href="/submit" className={itemClasses} onClick={() => setOpen(false)}>
+              Submit Article
+            </a>
+          ) : (
+            <Link href="/submit" className={itemClasses} onClick={() => setOpen(false)}>
+              Submit Article
             </Link>
           )}
+          {hardNavigate ? (
+            <a href="/account" className={itemClasses} onClick={() => setOpen(false)}>
+              Account
+            </a>
+          ) : (
+            <Link href="/account" className={itemClasses} onClick={() => setOpen(false)}>
+              Account
+            </Link>
+          )}
+          {viewer.role === "admin" &&
+            (hardNavigate ? (
+              <a href="/admin" className={itemClasses} onClick={() => setOpen(false)}>
+                Admin
+              </a>
+            ) : (
+              <Link href="/admin" className={itemClasses} onClick={() => setOpen(false)}>
+                Admin
+              </Link>
+            ))}
           <button
             type="button"
             disabled={loading}

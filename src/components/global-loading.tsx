@@ -15,7 +15,7 @@ const Overlay = styled.div<{ $visible: boolean }>`
   transition: opacity 400ms ease, visibility 400ms ease;
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   visibility: ${({ $visible }) => ($visible ? "visible" : "hidden")};
-  pointer-events: ${({ $visible }) => ($visible ? "auto" : "none")};
+  pointer-events: none;
 
   html[data-theme="light"] & {
     background: rgba(255, 255, 255, 0.6);
@@ -426,18 +426,22 @@ export default function GlobalLoading() {
   const [visible, setVisible] = React.useState(true);
 
   React.useEffect(() => {
-    let timeoutId: number | undefined;
+    let delayTimeout: number | undefined;
+    let hardTimeout: number | undefined;
     const hide = () => {
-      timeoutId = window.setTimeout(() => setVisible(false), 350);
+      delayTimeout = window.setTimeout(() => setVisible(false), 350);
     };
     if (document.readyState === "complete") {
       hide();
     } else {
       window.addEventListener("load", hide, { once: true });
     }
+    // Safety fallback in case the load event is missed or blocked.
+    hardTimeout = window.setTimeout(() => setVisible(false), 2500);
     return () => {
       window.removeEventListener("load", hide);
-      if (timeoutId) window.clearTimeout(timeoutId);
+      if (delayTimeout) window.clearTimeout(delayTimeout);
+      if (hardTimeout) window.clearTimeout(hardTimeout);
     };
   }, []);
 
