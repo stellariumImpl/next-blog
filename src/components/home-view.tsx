@@ -521,13 +521,13 @@ export default function HomeView({
                     key={tag.slug}
                     type="button"
                     onClick={() => toggleTag(tag.slug, tag.name)}
-                    className={`text-[10px] uppercase tracking-[0.3em] border px-2 py-1 transition ${
+                    className={`inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.3em] border px-2 py-1 transition ${
                       isActive
                         ? "border-[#00ff41] text-[#00ff41] bg-[#00ff41]/10"
                         : "border-[#00ff41]/30 text-[#00ff41] hover:bg-[#00ff41] hover:text-black"
                     }`}
                   >
-                    {tag.name}
+                    <Tag className="h-3 w-3" /> {" " + tag.name}
                   </button>
                 );
               })
@@ -550,8 +550,9 @@ export default function HomeView({
                     key={slug}
                     type="button"
                     onClick={() => removeTag(slug)}
-                    className="text-[9px] uppercase tracking-[0.3em] border border-[#00ff41]/40 px-2 py-1 text-[#00ff41] hover:bg-[#00ff41] hover:text-black transition"
+                    className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.3em] border border-[#00ff41]/40 px-2 py-1 text-[#00ff41] hover:bg-[#00ff41] hover:text-black transition"
                   >
+                    <Tag className="h-3 w-3" />
                     {tagLabels.get(slug) ?? slug} ×
                   </button>
                 ))}

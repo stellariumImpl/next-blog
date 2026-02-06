@@ -97,8 +97,8 @@ export default function SiteFooter() {
 
   return (
     <footer className="fixed bottom-0 w-full z-40 border-t app-border panel-bg backdrop-blur-md">
-      <div className="max-w-screen-2xl mx-auto h-10 px-6 flex items-center justify-between text-[10px] uppercase tracking-[0.3em] app-muted">
-        <div className="flex items-center gap-4">
+      <div className="max-w-screen-2xl mx-auto h-10 px-6 flex items-center gap-6 overflow-x-auto whitespace-nowrap text-[10px] uppercase tracking-[0.3em] app-muted [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex items-center gap-4 min-w-max">
           <Link
             href="/"
             className="flex items-center gap-2 font-bold hover:text-[color:var(--app-text)] transition-colors"
@@ -135,7 +135,7 @@ export default function SiteFooter() {
         <button
           type="button"
           onClick={openAudioDock}
-          className="flex items-center gap-2 text-[9px] font-bold tracking-[0.35em] hover:text-[color:var(--app-text)] transition-colors"
+          className="flex items-center gap-2 text-[9px] font-bold tracking-[0.35em] hover:text-[color:var(--app-text)] transition-colors min-w-max md:ml-auto"
         >
           <Music3 className="h-3.5 w-3.5" />
           <span>Audio Dock</span>

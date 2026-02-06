@@ -35,6 +35,7 @@ export default function AudioDock() {
   } = useAudioStore();
   const flashSystemMsg = useUIStore((state) => state.flashSystemMsg);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
@@ -75,6 +76,27 @@ export default function AudioDock() {
   }, [next]);
 
   const safeTracks = useMemo(() => tracks.filter((track) => track.src), [tracks]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const container = listRef.current;
+    if (!container) return;
+    const run = () => {
+      const activeNode = container.querySelector<HTMLElement>(
+        'button[data-active="true"]',
+      );
+      if (!activeNode) return;
+      const prefersReducedMotion =
+        typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      activeNode.scrollIntoView({
+        block: "center",
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+      });
+    };
+    const raf = window.requestAnimationFrame(run);
+    return () => window.cancelAnimationFrame(raf);
+  }, [isOpen, currentIndex]);
 
   const handlePlayPause = () => {
     if (!currentTrack?.src) {
@@ -137,13 +159,17 @@ export default function AudioDock() {
                   No audio sources configured
                 </div>
               ) : (
-                <div className="max-h-[44vh] overflow-y-auto pr-2 space-y-3">
+                <div
+                  ref={listRef}
+                  className="max-h-[44vh] overflow-y-auto pr-2 space-y-3"
+                >
                   {safeTracks.map((track, index) => {
                     const active = tracks[currentIndex]?.id === track.id;
                     return (
                       <button
                         key={track.id}
                         type="button"
+                        data-active={active ? "true" : "false"}
                         onClick={() => {
                           setCurrentIndex(index);
                           setPlaying(true);
