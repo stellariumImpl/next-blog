@@ -358,7 +358,7 @@ export default function SiteHeader({
           onClick={() => setSearchOpen(false)}
         >
           <div
-            className={`w-full max-w-2xl border p-10 shadow-[0_0_80px_rgba(0,0,0,0.15)] ${
+            className={`w-full max-w-2xl max-h-[80vh] overflow-hidden border p-10 shadow-[0_0_80px_rgba(0,0,0,0.15)] ${
               isDark
                 ? "border-[#00ff41]/20 bg-zinc-950 shadow-[0_0_100px_rgba(0,255,65,0.05)]"
                 : "border-[color:var(--panel-border)] bg-[color:var(--card-bg)]"
@@ -413,167 +413,171 @@ export default function SiteHeader({
               {searchError && (
                 <div className="text-xs text-red-500">{searchError}</div>
               )}
-              {(
-                searchQuery.trim().length === 0
-                  ? searchItems.map((item) => ({
-                      ...item,
-                      highlightTitle: undefined,
-                      highlightExcerpt: undefined,
-                      highlightContent: undefined,
-                      highlightTags: undefined as string[] | undefined,
-                    }))
-                  : searchResults.map((hit) => ({
-                      id: hit.objectID,
-                      slug: hit.slug,
-                      title: hit.title,
-                      excerpt: hit.excerpt ?? undefined,
-                      tags: hit.tags ?? [],
-                      publishedAt: hit.publishedAt ?? undefined,
-                      highlightTitle: hit._highlightResult?.title?.value,
-                      highlightExcerpt:
-                        hit._snippetResult?.excerpt?.value ??
-                        hit._highlightResult?.excerpt?.value,
-                      highlightContent:
-                        hit._snippetResult?.content?.value ??
-                        hit._highlightResult?.content?.value,
-                      highlightTags: hit._highlightResult?.tags
-                        ? hit._highlightResult?.tags.map((tag) => tag.value)
-                        : undefined,
-                    }))
-              ).map((item) => {
-                const highlightTitle = item.highlightTitle
-                  ? sanitizeHighlight(item.highlightTitle)
-                  : null;
-                const highlightExcerpt = item.highlightExcerpt
-                  ? sanitizeHighlight(item.highlightExcerpt)
-                  : null;
-                const highlightContent = item.highlightContent
-                  ? sanitizeHighlight(item.highlightContent)
-                  : null;
-                const highlightTags = item.highlightTags?.map((tag) =>
-                  sanitizeHighlight(tag),
-                );
-                const tags = highlightTags ?? item.tags ?? [];
-                const published = formatSearchDate(item.publishedAt);
-                const fallbackSnippet =
-                  highlightContent ||
-                  item.excerpt ||
-                  "No excerpt available yet.";
+              <div className="max-h-[52vh] overflow-y-auto pr-2 space-y-4">
+                {(
+                  searchQuery.trim().length === 0
+                    ? searchItems.map((item) => ({
+                        ...item,
+                        highlightTitle: undefined,
+                        highlightExcerpt: undefined,
+                        highlightContent: undefined,
+                        highlightTags: undefined as string[] | undefined,
+                      }))
+                    : searchResults.map((hit) => ({
+                        id: hit.objectID,
+                        slug: hit.slug,
+                        title: hit.title,
+                        excerpt: hit.excerpt ?? undefined,
+                        tags: hit.tags ?? [],
+                        publishedAt: hit.publishedAt ?? undefined,
+                        highlightTitle: hit._highlightResult?.title?.value,
+                        highlightExcerpt:
+                          hit._snippetResult?.excerpt?.value ??
+                          hit._highlightResult?.excerpt?.value,
+                        highlightContent:
+                          hit._snippetResult?.content?.value ??
+                          hit._highlightResult?.content?.value,
+                        highlightTags: hit._highlightResult?.tags
+                          ? hit._highlightResult?.tags.map((tag) => tag.value)
+                          : undefined,
+                      }))
+                ).map((item) => {
+                  const highlightTitle = item.highlightTitle
+                    ? sanitizeHighlight(item.highlightTitle)
+                    : null;
+                  const highlightExcerpt = item.highlightExcerpt
+                    ? sanitizeHighlight(item.highlightExcerpt)
+                    : null;
+                  const highlightContent = item.highlightContent
+                    ? sanitizeHighlight(item.highlightContent)
+                    : null;
+                  const highlightTags = item.highlightTags?.map((tag) =>
+                    sanitizeHighlight(tag),
+                  );
+                  const tags = highlightTags ?? item.tags ?? [];
+                  const published = formatSearchDate(item.publishedAt);
+                  const fallbackSnippet =
+                    highlightContent ||
+                    item.excerpt ||
+                    "No excerpt available yet.";
 
-                return (
-                  <Link
-                    key={item.id}
-                    href={`/posts/${item.slug}`}
-                    onClick={() => setSearchOpen(false)}
-                    className={`group flex flex-col gap-3 p-4 cursor-pointer transition-all border ${
-                      isDark
-                        ? "border-transparent hover:border-[#00ff41]/20 hover:bg-[#00ff41]/10"
-                        : "border-[color:var(--panel-border)] hover:border-[color:var(--accent)]/40 hover:bg-[color:var(--panel-bg)]"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div
-                        className={`text-sm uppercase font-bold ${
-                          isDark
-                            ? "text-zinc-200 group-hover:text-white"
-                            : "text-[color:var(--app-text)]"
-                        }`}
-                      >
-                        <span className="mr-2">/</span>
-                        {highlightTitle ? (
-                          <span
-                            className="algolia-highlight"
-                            dangerouslySetInnerHTML={{ __html: highlightTitle }}
-                          />
-                        ) : (
-                          item.title
-                        )}
-                      </div>
-                      <ArrowRight
-                        className={`w-3 h-3 opacity-0 group-hover:opacity-100 ${
-                          isDark
-                            ? "text-[#00ff41]"
-                            : "text-[color:var(--accent)]"
-                        }`}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <div
-                        className={`text-xs leading-relaxed ${
-                          isDark
-                            ? "text-zinc-500"
-                            : "text-[color:var(--text-muted-strong)]"
-                        }`}
-                      >
-                        {highlightExcerpt || highlightContent ? (
-                          <span
-                            className="algolia-highlight"
-                            dangerouslySetInnerHTML={{
-                              __html:
-                                highlightExcerpt ?? highlightContent ?? "",
-                            }}
-                          />
-                        ) : (
-                          fallbackSnippet
-                        )}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 text-[9px] uppercase tracking-[0.3em]">
-                        {tags.length > 0 ? (
-                          tags.map((tag, index) => (
+                  return (
+                    <Link
+                      key={item.id}
+                      href={`/posts/${item.slug}`}
+                      onClick={() => setSearchOpen(false)}
+                      className={`group flex flex-col gap-3 p-4 cursor-pointer transition-all border ${
+                        isDark
+                          ? "border-transparent hover:border-[#00ff41]/20 hover:bg-[#00ff41]/10"
+                          : "border-[color:var(--panel-border)] hover:border-[color:var(--accent)]/40 hover:bg-[color:var(--panel-bg)]"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div
+                          className={`text-sm uppercase font-bold ${
+                            isDark
+                              ? "text-zinc-200 group-hover:text-white"
+                              : "text-[color:var(--app-text)]"
+                          }`}
+                        >
+                          <span className="mr-2">/</span>
+                          {highlightTitle ? (
                             <span
-                              key={`${item.id}-tag-${index}`}
-                              className={`px-2 py-1 border ${
-                                isDark
-                                  ? "border-[#00ff41]/40 text-[#00ff41]"
-                                  : "border-[color:var(--accent)]/50 text-[color:var(--accent)]"
-                              }`}
-                              dangerouslySetInnerHTML={{ __html: tag }}
+                              className="algolia-highlight"
+                              dangerouslySetInnerHTML={{
+                                __html: highlightTitle,
+                              }}
                             />
-                          ))
-                        ) : (
-                          <span
-                            className={
-                              isDark
-                                ? "text-zinc-600"
-                                : "text-[color:var(--text-muted)]"
-                            }
-                          >
-                            No tags
-                          </span>
-                        )}
-                        {published && (
-                          <span
-                            className={
-                              isDark
-                                ? "text-zinc-600"
-                                : "text-[color:var(--text-muted)]"
-                            }
-                          >
-                            · {published}
-                          </span>
-                        )}
+                          ) : (
+                            item.title
+                          )}
+                        </div>
+                        <ArrowRight
+                          className={`w-3 h-3 opacity-0 group-hover:opacity-100 ${
+                            isDark
+                              ? "text-[#00ff41]"
+                              : "text-[color:var(--accent)]"
+                          }`}
+                        />
                       </div>
-                    </div>
-                  </Link>
-                );
-              })}
-              {searchQuery.trim().length === 0 && searchItems.length === 0 && (
-                <div
-                  className={`text-xs ${isDark ? "text-zinc-600" : "text-[color:var(--text-muted)]"}`}
-                >
-                  No results available yet.
-                </div>
-              )}
-              {searchQuery.trim().length > 0 &&
-                !searchLoading &&
-                searchResults.length === 0 &&
-                !searchError && (
+                      <div className="flex flex-col gap-2">
+                        <div
+                          className={`text-xs leading-relaxed ${
+                            isDark
+                              ? "text-zinc-500"
+                              : "text-[color:var(--text-muted-strong)]"
+                          }`}
+                        >
+                          {highlightExcerpt || highlightContent ? (
+                            <span
+                              className="algolia-highlight"
+                              dangerouslySetInnerHTML={{
+                                __html:
+                                  highlightExcerpt ?? highlightContent ?? "",
+                              }}
+                            />
+                          ) : (
+                            fallbackSnippet
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 text-[9px] uppercase tracking-[0.3em]">
+                          {tags.length > 0 ? (
+                            tags.map((tag, index) => (
+                              <span
+                                key={`${item.id}-tag-${index}`}
+                                className={`px-2 py-1 border ${
+                                  isDark
+                                    ? "border-[#00ff41]/40 text-[#00ff41]"
+                                    : "border-[color:var(--accent)]/50 text-[color:var(--accent)]"
+                                }`}
+                                dangerouslySetInnerHTML={{ __html: tag }}
+                              />
+                            ))
+                          ) : (
+                            <span
+                              className={
+                                isDark
+                                  ? "text-zinc-600"
+                                  : "text-[color:var(--text-muted)]"
+                              }
+                            >
+                              No tags
+                            </span>
+                          )}
+                          {published && (
+                            <span
+                              className={
+                                isDark
+                                  ? "text-zinc-600"
+                                  : "text-[color:var(--text-muted)]"
+                              }
+                            >
+                              · {published}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+                {searchQuery.trim().length === 0 && searchItems.length === 0 && (
                   <div
                     className={`text-xs ${isDark ? "text-zinc-600" : "text-[color:var(--text-muted)]"}`}
                   >
-                    No matches found.
+                    No results available yet.
                   </div>
                 )}
+                {searchQuery.trim().length > 0 &&
+                  !searchLoading &&
+                  searchResults.length === 0 &&
+                  !searchError && (
+                    <div
+                      className={`text-xs ${isDark ? "text-zinc-600" : "text-[color:var(--text-muted)]"}`}
+                    >
+                      No matches found.
+                    </div>
+                  )}
+              </div>
             </div>
             <button
               onClick={() => setSearchOpen(false)}

@@ -391,24 +391,23 @@ export default function HomeView({
               </span>
             </h1>
           </div>
-          {/* <div
-            className={`lg:col-span-4 hidden lg:block border ${borderColor} p-4 ${panelBg} transition-all`}
-          >
+          <div className="lg:col-span-4 hidden lg:block p-2 lg:p-3 bg-transparent">
             <div
-              className={`text-[10px] ${mutedLabel} mb-3 uppercase tracking-widest flex justify-between`}
+              className={`social-card ${
+                isDark ? "social-card--dark" : "social-card--light"
+              }`}
             >
-              <span>System_Latency</span>
-              <span className="text-[#00ff41]">{systemLoad}s</span>
+              <span className="social-card__shooting-star star-a" />
+              <span className="social-card__shooting-star star-b" />
+              <img
+                src="https://uiverse.io/astronaut.png"
+                alt="Astronaut"
+                className="social-card__image"
+                width={220}
+                loading="lazy"
+              />
             </div>
-            <div className="space-y-1.5 opacity-50">
-              <div className="h-1 bg-zinc-800 w-full rounded-full overflow-hidden">
-                <div className="h-full bg-[#00ff41] w-[60%] animate-pulse"></div>
-              </div>
-              <div className="h-1 bg-zinc-800 w-full rounded-full overflow-hidden">
-                <div className="h-full bg-cyan-500 w-[40%]"></div>
-              </div>
-            </div>
-          </div> */}
+          </div>
         </div>
       </header>
 
@@ -878,6 +877,141 @@ export default function HomeView({
           </div>
         )}
       </main>
+      <style jsx>{`
+        .social-card {
+          position: relative;
+          height: 240px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: visible;
+          background: transparent;
+        }
+
+        .social-card::before {
+          content: "";
+          position: absolute;
+          background: radial-gradient(
+            circle,
+            rgba(0, 255, 65, 0.25),
+            transparent 70%
+          );
+          opacity: 0.7;
+          transform: translate(0, 20%);
+        }
+
+        .social-card--light::before {
+          opacity: 0;
+        }
+
+        .social-card::after {
+          content: "";
+          position: absolute;
+          top: 24px;
+          left: 24px;
+          width: 2px;
+          height: 2px;
+          border-radius: 999px;
+          box-shadow:
+            180px 20px rgba(255, 255, 255, 0.7),
+            120px 90px rgba(255, 255, 255, 0.6),
+            40px 40px rgba(255, 255, 255, 0.6),
+            60px 140px rgba(255, 255, 255, 0.4),
+            200px 130px rgba(255, 255, 255, 0.5),
+            30px 170px rgba(255, 255, 255, 0.5);
+          animation: stars 2.6s linear infinite;
+          opacity: 0.7;
+        }
+
+        .social-card__image {
+          width: 220px;
+          filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.55))
+            drop-shadow(0 0 24px rgba(0, 255, 65, 0.2));
+          animation: float 9s ease-in-out infinite;
+          z-index: 1;
+        }
+
+        .social-card--light .social-card__image {
+          filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.35));
+        }
+
+        .social-card__shooting-star {
+          position: absolute;
+          width: 90px;
+          height: 1px;
+          background: linear-gradient(90deg, #ffffff, transparent);
+          opacity: 0.6;
+          animation: shooting 4.8s ease-in-out infinite;
+        }
+
+        .social-card__shooting-star.star-a {
+          top: 30px;
+          left: 60%;
+          transform: rotate(-20deg);
+          animation-delay: 0.8s;
+        }
+
+        .social-card__shooting-star.star-b {
+          top: 100px;
+          left: 70%;
+          transform: rotate(-25deg);
+          animation-delay: 2.2s;
+        }
+
+        @keyframes float {
+          0% {
+            transform: translate(0, 0) rotate(0deg);
+          }
+          25% {
+            transform: translate(-6px, -10px) rotate(-4deg);
+          }
+          50% {
+            transform: translate(0, 6px) rotate(0deg);
+          }
+          75% {
+            transform: translate(6px, -8px) rotate(4deg);
+          }
+          100% {
+            transform: translate(0, 0) rotate(0deg);
+          }
+        }
+
+        @keyframes stars {
+          0%,
+          100% {
+            opacity: 0.35;
+          }
+          50% {
+            opacity: 0.8;
+          }
+        }
+
+        @keyframes shooting {
+          0% {
+            opacity: 0;
+            transform: translateX(0) translateY(0) rotate(-20deg);
+          }
+          30% {
+            opacity: 0.9;
+          }
+          60% {
+            opacity: 0;
+            transform: translateX(-160px) translateY(20px) rotate(-20deg);
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(-160px) translateY(20px) rotate(-20deg);
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .social-card__image,
+          .social-card__shooting-star,
+          .social-card::after {
+            animation: none;
+          }
+        }
+      `}</style>
     </div>
   );
 }
