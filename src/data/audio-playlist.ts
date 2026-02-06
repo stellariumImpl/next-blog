@@ -9,6 +9,12 @@ export type AudioTrack = {
 
 export const audioPlaylist: AudioTrack[] = [
   {
+    id: "never-enough",
+    title: "Never Enough",
+    artist: "Loren Allred",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/Never-Enough-Loren-Allred.mp3",
+  },
+  {
     id: "sundaland-on-mind",
     title: "Sundaland on mind",
     artist: "tokyo blue weeps",

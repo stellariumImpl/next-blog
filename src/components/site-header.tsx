@@ -53,6 +53,7 @@ export default function SiteHeader({
   const toggleTheme = useUIStore((state) => state.toggleTheme);
   const flashSystemMsg = useUIStore((state) => state.flashSystemMsg);
   const selectedTags = useFeedFilterStore((state) => state.selectedTags);
+  const setSelectedTags = useFeedFilterStore((state) => state.setSelectedTags);
   const match = useFeedFilterStore((state) => state.match);
   const toggleTag = useFeedFilterStore((state) => state.toggleTag);
   const removeTag = useFeedFilterStore((state) => state.removeTag);
@@ -163,8 +164,11 @@ export default function SiteHeader({
     if (loadingTags) return;
     setLoadingTags(true);
     setTagError("");
+    setAllTags([]);
     try {
-      const response = await fetch("/api/tags", { cache: "no-store" });
+      const response = await fetch(`/api/tags?ts=${Date.now()}`, {
+        cache: "no-store",
+      });
       if (!response.ok) {
         throw new Error("Failed to load tags.");
       }
@@ -174,6 +178,13 @@ export default function SiteHeader({
       const tags = data.tags ?? [];
       setAllTags(tags);
       setTagLookup(tags);
+      if (selectedTags.length > 0) {
+        const allowed = new Set(tags.map((tag) => tag.slug));
+        const nextSelected = selectedTags.filter((slug) => allowed.has(slug));
+        if (nextSelected.length !== selectedTags.length) {
+          setSelectedTags(nextSelected);
+        }
+      }
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Tag library unavailable.";
@@ -185,7 +196,14 @@ export default function SiteHeader({
 
   useEffect(() => {
     if (filterOpen) {
+      setTagSearch("");
+      setTagError("");
+      setAllTags([]);
       loadAllTags();
+    } else {
+      setTagSearch("");
+      setTagError("");
+      setAllTags([]);
     }
   }, [filterOpen]);
 
