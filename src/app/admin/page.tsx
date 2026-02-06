@@ -11,6 +11,7 @@ import {
   tagRevisions,
 } from '@/db/schema';
 import EmptyState from '@/components/ui/empty-state';
+import TimeStamp from '@/components/ui/time-stamp';
 import { Inbox, Shield } from 'lucide-react';
 import Link from 'next/link';
 
@@ -64,6 +65,21 @@ export default async function AdminHome() {
     bounceRate: 0,
     topPages: [] as { path: string; views: number }[],
   };
+  let recentSessions: Array<{
+    id: string;
+    ipHash: string;
+    country: string | null;
+    region: string | null;
+    city: string | null;
+    os: string | null;
+    browser: string | null;
+    startedAt: Date | string;
+    lastSeenAt: Date | string;
+    pageviews: number;
+    totalDuration: number;
+    entryPath: string | null;
+    exitPath: string | null;
+  }> = [];
 
   try {
     const [pageviews] = await db
@@ -136,6 +152,41 @@ export default async function AdminHome() {
       .orderBy(desc(sql`count(*)`))
       .limit(5);
 
+    const sessionRows = await db.execute(sql`
+      SELECT
+        s.id,
+        s.ip_hash,
+        s.country,
+        s.region,
+        s.city,
+        s.os,
+        s.browser,
+        s.started_at,
+        s.last_seen_at,
+        COUNT(p.id)::int AS pageviews,
+        COALESCE(SUM(p.duration_ms), 0)::int AS total_duration,
+        (
+          SELECT p2.path
+          FROM ${analyticsPageviews} p2
+          WHERE p2.session_id = s.id
+          ORDER BY p2.started_at ASC
+          LIMIT 1
+        ) AS entry_path,
+        (
+          SELECT p3.path
+          FROM ${analyticsPageviews} p3
+          WHERE p3.session_id = s.id
+          ORDER BY p3.started_at DESC
+          LIMIT 1
+        ) AS exit_path
+      FROM ${analyticsSessions} s
+      LEFT JOIN ${analyticsPageviews} p ON p.session_id = s.id
+      WHERE s.started_at >= ${since}
+      GROUP BY s.id
+      ORDER BY s.last_seen_at DESC
+      LIMIT 50;
+    `);
+
     stats = {
       sessions: sessions?.count ?? 0,
       pageviews: pageviews?.count ?? 0,
@@ -144,6 +195,21 @@ export default async function AdminHome() {
       bounceRate,
       topPages,
     };
+    recentSessions = (sessionRows.rows ?? []).map((row) => ({
+      id: String(row.id),
+      ipHash: String(row.ip_hash ?? ''),
+      country: row.country ? String(row.country) : null,
+      region: row.region ? String(row.region) : null,
+      city: row.city ? String(row.city) : null,
+      os: row.os ? String(row.os) : null,
+      browser: row.browser ? String(row.browser) : null,
+      startedAt: row.started_at as Date | string,
+      lastSeenAt: row.last_seen_at as Date | string,
+      pageviews: Number(row.pageviews ?? 0),
+      totalDuration: Number(row.total_duration ?? 0),
+      entryPath: row.entry_path ? String(row.entry_path) : null,
+      exitPath: row.exit_path ? String(row.exit_path) : null,
+    }));
   } catch (error) {
     analyticsError =
       error instanceof Error ? error.message : 'Analytics unavailable.';
@@ -232,6 +298,83 @@ export default async function AdminHome() {
           </div>
         )}
       </section>
+
+      {!analyticsError && (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.4em] text-zinc-500">
+              <Shield className="h-4 w-4" />
+              Recent Sessions (Last 30 Days)
+            </div>
+            <div className="text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+              Showing {recentSessions.length} sessions
+            </div>
+          </div>
+          {recentSessions.length === 0 ? (
+            <div className="border border-zinc-800 rounded p-4 bg-zinc-900/40 text-sm text-zinc-500">
+              No session data yet.
+            </div>
+          ) : (
+            <div className="border border-zinc-800 rounded bg-zinc-900/40 overflow-hidden">
+              <div className="grid grid-cols-1 lg:grid-cols-6 gap-4 border-b border-zinc-800/60 px-4 py-3 text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+                <span>Session</span>
+                <span>Area</span>
+                <span>Device</span>
+                <span>Pages</span>
+                <span>Duration</span>
+                <span>Last Seen</span>
+              </div>
+              <div className="divide-y divide-zinc-800/60">
+                {recentSessions.map((session) => {
+                  const area = [session.city, session.region, session.country]
+                    .filter(Boolean)
+                    .join(', ');
+                  const isBounce =
+                    session.pageviews === 1 && session.totalDuration < 15000;
+                  return (
+                    <div
+                      key={session.id}
+                      className="grid grid-cols-1 lg:grid-cols-6 gap-4 px-4 py-3 text-sm"
+                    >
+                      <div className="space-y-1">
+                        <Link
+                          href={`/admin/analytics/${session.id}`}
+                          className="text-[color:var(--accent)] hover:underline"
+                        >
+                          {session.ipHash.slice(0, 10)}…
+                        </Link>
+                        <div className="text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+                          {session.entryPath ?? '--'} → {session.exitPath ?? '--'}
+                        </div>
+                        {isBounce && (
+                          <div className="text-[10px] uppercase tracking-[0.3em] text-red-400">
+                            Bounce
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-zinc-400">
+                        {area || '--'}
+                      </div>
+                      <div className="text-zinc-400">
+                        {session.os ?? '--'} · {session.browser ?? '--'}
+                      </div>
+                      <div className="text-zinc-400">
+                        {session.pageviews}
+                      </div>
+                      <div className="text-zinc-400">
+                        {formatDuration(session.totalDuration)}
+                      </div>
+                      <div className="text-zinc-400">
+                        <TimeStamp value={session.lastSeenAt} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       {totalPending === 0 ? (
         <EmptyState
