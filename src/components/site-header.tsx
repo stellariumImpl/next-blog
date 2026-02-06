@@ -310,7 +310,7 @@ export default function SiteHeader({
               className="flex items-center space-x-2 bg-zinc-900 text-white px-2 py-1 border border-zinc-700"
             >
               <Zap className="w-3 h-3 text-[#00ff41]" />
-              <span className="hidden md:inline">CORE_DUMP_v6.0</span>
+              <span className="hidden md:inline">CORE_DUMP</span>
             </Link>
             {systemMsg && (
               <span className="text-red-500 animate-pulse hidden md:inline">
@@ -342,7 +342,9 @@ export default function SiteHeader({
               </button>
             )} */}
 
-            <span className={`${mutedText} opacity-70 hidden md:inline`}>|</span>
+            <span className={`${mutedText} opacity-70 hidden md:inline`}>
+              |
+            </span>
 
             <button onClick={handleSearch} className={searchClasses}>
               <Search className="w-3 h-3" />
@@ -432,33 +434,32 @@ export default function SiteHeader({
                 <div className="text-xs text-red-500">{searchError}</div>
               )}
               <div className="max-h-[52vh] overflow-y-auto pr-2 space-y-4">
-                {(
-                  searchQuery.trim().length === 0
-                    ? searchItems.map((item) => ({
-                        ...item,
-                        highlightTitle: undefined,
-                        highlightExcerpt: undefined,
-                        highlightContent: undefined,
-                        highlightTags: undefined as string[] | undefined,
-                      }))
-                    : searchResults.map((hit) => ({
-                        id: hit.objectID,
-                        slug: hit.slug,
-                        title: hit.title,
-                        excerpt: hit.excerpt ?? undefined,
-                        tags: hit.tags ?? [],
-                        publishedAt: hit.publishedAt ?? undefined,
-                        highlightTitle: hit._highlightResult?.title?.value,
-                        highlightExcerpt:
-                          hit._snippetResult?.excerpt?.value ??
-                          hit._highlightResult?.excerpt?.value,
-                        highlightContent:
-                          hit._snippetResult?.content?.value ??
-                          hit._highlightResult?.content?.value,
-                        highlightTags: hit._highlightResult?.tags
-                          ? hit._highlightResult?.tags.map((tag) => tag.value)
-                          : undefined,
-                      }))
+                {(searchQuery.trim().length === 0
+                  ? searchItems.map((item) => ({
+                      ...item,
+                      highlightTitle: undefined,
+                      highlightExcerpt: undefined,
+                      highlightContent: undefined,
+                      highlightTags: undefined as string[] | undefined,
+                    }))
+                  : searchResults.map((hit) => ({
+                      id: hit.objectID,
+                      slug: hit.slug,
+                      title: hit.title,
+                      excerpt: hit.excerpt ?? undefined,
+                      tags: hit.tags ?? [],
+                      publishedAt: hit.publishedAt ?? undefined,
+                      highlightTitle: hit._highlightResult?.title?.value,
+                      highlightExcerpt:
+                        hit._snippetResult?.excerpt?.value ??
+                        hit._highlightResult?.excerpt?.value,
+                      highlightContent:
+                        hit._snippetResult?.content?.value ??
+                        hit._highlightResult?.content?.value,
+                      highlightTags: hit._highlightResult?.tags
+                        ? hit._highlightResult?.tags.map((tag) => tag.value)
+                        : undefined,
+                    }))
                 ).map((item) => {
                   const highlightTitle = item.highlightTitle
                     ? sanitizeHighlight(item.highlightTitle)
@@ -578,13 +579,14 @@ export default function SiteHeader({
                     </Link>
                   );
                 })}
-                {searchQuery.trim().length === 0 && searchItems.length === 0 && (
-                  <div
-                    className={`text-xs ${isDark ? "text-zinc-600" : "text-[color:var(--text-muted)]"}`}
-                  >
-                    No results available yet.
-                  </div>
-                )}
+                {searchQuery.trim().length === 0 &&
+                  searchItems.length === 0 && (
+                    <div
+                      className={`text-xs ${isDark ? "text-zinc-600" : "text-[color:var(--text-muted)]"}`}
+                    >
+                      No results available yet.
+                    </div>
+                  )}
                 {searchQuery.trim().length > 0 &&
                   !searchLoading &&
                   searchResults.length === 0 &&

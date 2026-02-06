@@ -271,3 +271,17 @@ export const postLikes = pgTable(
     pk: primaryKey({ columns: [table.postId, table.userId] }),
   })
 );
+
+export const siteSettings = pgTable('site_settings', {
+  id: integer('id').primaryKey().default(1),
+  faviconUrl: text('favicon_url'),
+  customCss: text('custom_css'),
+  customJs: text('custom_js'),
+  customHtml: text('custom_html'),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});

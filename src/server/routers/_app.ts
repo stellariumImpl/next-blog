@@ -8,6 +8,7 @@ import {
   posts,
   postLikes,
   postTags,
+  siteSettings,
   tagRequests,
   tagRevisions,
   tags,
@@ -101,6 +102,16 @@ const slugFromTagName = (value: string) => {
     .replace(/^-+|-+$/g, '');
   if (base.length > 0) return base.slice(0, 64);
   return `tag-${hashString(value)}`.slice(0, 64);
+};
+
+const MAX_SETTINGS_CODE_SIZE = 50000;
+const isValidFaviconUrl = (value: string) =>
+  value.startsWith('/') || value.startsWith('http://') || value.startsWith('https://');
+const normalizeOptionalText = (value?: string | null) => {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
 };
 
 const resolveTagInputs = async ({
@@ -989,6 +1000,77 @@ const adminRouter = router({
       await ctx.db.delete(tagRevisions).where(eq(tagRevisions.tagId, input.tagId));
       await ctx.db.delete(tags).where(eq(tags.id, input.tagId));
       return { ok: true };
+    }),
+  getSiteSettings: adminProcedure.query(async ({ ctx }) => {
+    const [row] = await ctx.db
+      .select({
+        faviconUrl: siteSettings.faviconUrl,
+        customCss: siteSettings.customCss,
+        customJs: siteSettings.customJs,
+        customHtml: siteSettings.customHtml,
+      })
+      .from(siteSettings)
+      .where(eq(siteSettings.id, 1))
+      .limit(1);
+
+    return {
+      faviconUrl: row?.faviconUrl ?? null,
+      customCss: row?.customCss ?? '',
+      customJs: row?.customJs ?? '',
+      customHtml: row?.customHtml ?? '',
+    };
+  }),
+  updateSiteSettings: adminProcedure
+    .input(
+      z.object({
+        faviconUrl: z.string().max(2048).optional().nullable(),
+        customCss: z.string().max(MAX_SETTINGS_CODE_SIZE).optional().nullable(),
+        customJs: z.string().max(MAX_SETTINGS_CODE_SIZE).optional().nullable(),
+        customHtml: z.string().max(MAX_SETTINGS_CODE_SIZE).optional().nullable(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const normalizedFavicon = normalizeOptionalText(input.faviconUrl);
+      if (normalizedFavicon && !isValidFaviconUrl(normalizedFavicon)) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Favicon URL must be absolute (http/https) or root-relative.',
+        });
+      }
+
+      const updatePayload: Partial<typeof siteSettings.$inferInsert> = {
+        updatedAt: new Date(),
+      };
+
+      const normalizedCss = normalizeOptionalText(input.customCss);
+      const normalizedJs = normalizeOptionalText(input.customJs);
+      const normalizedHtml = normalizeOptionalText(input.customHtml);
+
+      if (normalizedFavicon !== undefined) updatePayload.faviconUrl = normalizedFavicon;
+      if (normalizedCss !== undefined) updatePayload.customCss = normalizedCss;
+      if (normalizedJs !== undefined) updatePayload.customJs = normalizedJs;
+      if (normalizedHtml !== undefined) updatePayload.customHtml = normalizedHtml;
+
+      const [updated] = await ctx.db
+        .insert(siteSettings)
+        .values({ id: 1, ...updatePayload })
+        .onConflictDoUpdate({
+          target: siteSettings.id,
+          set: updatePayload,
+        })
+        .returning({
+          faviconUrl: siteSettings.faviconUrl,
+          customCss: siteSettings.customCss,
+          customJs: siteSettings.customJs,
+          customHtml: siteSettings.customHtml,
+        });
+
+      return {
+        faviconUrl: updated?.faviconUrl ?? null,
+        customCss: updated?.customCss ?? '',
+        customJs: updated?.customJs ?? '',
+        customHtml: updated?.customHtml ?? '',
+      };
     }),
 });
 
