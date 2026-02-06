@@ -29,7 +29,7 @@ export default function CommentForm({
   draft?: string;
   onDraftChange?: (value: string) => void;
   onSubmitted?: () => void;
-  textareaRef?: RefObject<HTMLTextAreaElement | null>;
+  textareaRef?: RefObject<HTMLTextAreaElement>;
   label?: string;
   submitLabel?: string;
   compact?: boolean;

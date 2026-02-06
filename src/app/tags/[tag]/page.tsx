@@ -35,7 +35,7 @@ async function editTagAction(
       slug: slug || undefined,
     });
     const message =
-      updated && 'status' in updated && updated.status !== 'applied'
+      updated && 'status' in updated
         ? 'Tag update submitted for review.'
         : 'Tag updated.';
     revalidatePath('/tags');

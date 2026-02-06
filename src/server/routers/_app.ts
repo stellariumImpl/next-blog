@@ -6,6 +6,7 @@ import {
   commentRevisions,
   postRevisions,
   posts,
+  postLikes,
   postTags,
   tagRequests,
   tagRevisions,
@@ -103,22 +104,21 @@ const slugFromTagName = (value: string) => {
 };
 
 const resolveTagInputs = async ({
-  ctx,
+  db,
+  userId,
   tagIds,
   tagNames,
   isAdmin,
 }: {
-  ctx: {
-    db: typeof import('@/db').db;
-    user: { id: string };
-  };
+  db: typeof import('@/db').db;
+  userId: string;
   tagIds?: string[];
   tagNames?: string[];
   isAdmin: boolean;
 }) => {
   const uniqueIds = Array.from(new Set((tagIds ?? []).filter(Boolean)));
   if (uniqueIds.length > 0) {
-    const validTags = await ctx.db
+    const validTags = await db
       .select({ id: tags.id })
       .from(tags)
       .where(inArray(tags.id, uniqueIds));
@@ -147,7 +147,7 @@ const resolveTagInputs = async ({
   const slugs = Array.from(slugMap.keys());
   const existingTags =
     slugs.length > 0 || normalizedNames.length > 0
-      ? await ctx.db
+      ? await db
           .select({ id: tags.id, slug: tags.slug, name: tags.name })
           .from(tags)
           .where(
@@ -182,32 +182,31 @@ const resolveTagInputs = async ({
 
   if (newTags.length > 0) {
     if (isAdmin) {
-      const created = await ctx.db
+      const created = await db
         .insert(tags)
         .values(
           newTags.map((tag) => ({
             name: tag.name,
             slug: tag.slug,
-            createdBy: ctx.user.id,
-            approvedBy: ctx.user.id,
+            createdBy: userId,
+            approvedBy: userId,
           }))
         )
         .returning({ id: tags.id, slug: tags.slug });
       created.forEach((tag) => finalIds.add(tag.id));
     } else {
-      const pending = await ctx.db
+      const pending = await db
         .select({ slug: tagRequests.slug })
         .from(tagRequests)
         .where(and(inArray(tagRequests.slug, newTags.map((tag) => tag.slug)), eq(tagRequests.status, 'pending')));
       const pendingSlugs = new Set(pending.map((tag) => tag.slug));
       const toInsert = newTags.filter((tag) => !pendingSlugs.has(tag.slug));
       if (toInsert.length > 0) {
-        await ctx.db.insert(tagRequests).values(
+        await db.insert(tagRequests).values(
           toInsert.map((tag) => ({
             name: tag.name,
             slug: tag.slug,
-            requestedBy: ctx.user.id,
-            status: 'pending',
+            requestedBy: userId,
           }))
         );
       }
@@ -240,11 +239,15 @@ const postRouter = router({
       throw new TRPCError({ code: 'CONFLICT', message: 'Slug already exists.' });
     }
 
+    if (!ctx.user) {
+      throw new TRPCError({ code: 'UNAUTHORIZED' });
+    }
+    const userId = ctx.user.id;
     const now = new Date();
     const [created] = await ctx.db
       .insert(posts)
       .values({
-        authorId: ctx.user.id,
+        authorId: userId,
         title: input.title,
         slug: finalSlug,
         excerpt: input.excerpt,
@@ -255,7 +258,8 @@ const postRouter = router({
       .returning();
 
     const resolvedTagIds = await resolveTagInputs({
-      ctx,
+      db: ctx.db,
+      userId,
       tagIds: input.tagIds,
       tagNames: input.tagNames,
       isAdmin,
@@ -289,6 +293,10 @@ const postRouter = router({
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found.' });
       }
 
+      if (!ctx.user) {
+        throw new TRPCError({ code: 'UNAUTHORIZED' });
+      }
+      const userId = ctx.user.id;
       const isAdmin = ctx.profile?.role === 'admin';
       if (!isAdmin && existing[0].authorId !== ctx.user.id) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Not your post.' });
@@ -304,7 +312,8 @@ const postRouter = router({
         await ctx.db.update(posts).set(updatePayload).where(eq(posts.id, input.postId));
         if (input.tagIds !== undefined || input.tagNames !== undefined) {
           const resolvedTagIds = await resolveTagInputs({
-            ctx,
+            db: ctx.db,
+            userId,
             tagIds: input.tagIds,
             tagNames: input.tagNames,
             isAdmin: true,
@@ -328,7 +337,8 @@ const postRouter = router({
       let resolvedTagIds: string[] | undefined = undefined;
       if (input.tagIds !== undefined || input.tagNames !== undefined) {
         resolvedTagIds = await resolveTagInputs({
-          ctx,
+          db: ctx.db,
+          userId,
           tagIds: input.tagIds,
           tagNames: input.tagNames,
           isAdmin: false,
@@ -339,7 +349,7 @@ const postRouter = router({
         .insert(postRevisions)
         .values({
           postId: input.postId,
-          authorId: ctx.user.id,
+          authorId: userId,
           title: input.title,
           excerpt: input.excerpt,
           content: input.content,
@@ -704,8 +714,12 @@ const adminRouter = router({
         .where(eq(posts.id, patch.postId));
 
       if (patch.tagIds !== undefined || patch.tagNames !== undefined) {
+        if (!ctx.user) {
+          throw new TRPCError({ code: 'UNAUTHORIZED' });
+        }
         const resolvedTagIds = await resolveTagInputs({
-          ctx,
+          db: ctx.db,
+          userId: ctx.user.id,
           tagIds: patch.tagIds ?? undefined,
           tagNames: patch.tagNames ?? undefined,
           isAdmin: true,

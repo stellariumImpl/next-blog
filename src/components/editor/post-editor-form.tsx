@@ -92,7 +92,7 @@ export default function PostEditorForm({
   const tagTouchedRef = useRef(false);
   const router = useRouter();
   const redirectedRef = useRef(false);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);

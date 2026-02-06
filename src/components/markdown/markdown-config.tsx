@@ -1,4 +1,5 @@
 import type { Components } from 'react-markdown';
+import type { Pluggable } from 'unified';
 import { createSlugger, stripMarkdown, type Slugger } from '@/lib/markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -58,13 +59,16 @@ const markdownSchema = {
   },
 };
 
-export const markdownPlugins = {
+export const markdownPlugins: {
+  remarkPlugins: Pluggable[];
+  rehypePlugins: Pluggable[];
+} = {
   remarkPlugins: [remarkGfm, remarkMath],
   rehypePlugins: [
     rehypeRaw,
     rehypeKatex,
-    [rehypeSanitize, markdownSchema],
-    [rehypeHighlight, { ignoreMissing: true }],
+    [rehypeSanitize, markdownSchema] as Pluggable,
+    [rehypeHighlight, { ignoreMissing: true }] as Pluggable,
   ],
 };
 
