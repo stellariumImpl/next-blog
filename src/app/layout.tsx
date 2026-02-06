@@ -6,6 +6,7 @@ import AudioDockProvider from "@/components/audio/audio-dock-provider";
 import RouteTransition from "@/components/route-transition";
 import Spotlight from "@/components/spotlight";
 import GlobalLoading from "@/components/global-loading";
+import AnalyticsTracker from "@/components/analytics/analytics-tracker";
 import { getSiteSettings } from "@/lib/site-settings";
 import "./globals.css";
 import "katex/dist/katex.min.css";
@@ -43,6 +44,7 @@ export default async function RootLayout({
         <RouteProgress />
         <Spotlight />
         <RouteTransition />
+        <AnalyticsTracker />
         <div className="min-h-screen pb-12">{children}</div>
         <SiteFooter />
         <AudioDockProvider />

@@ -8,6 +8,7 @@ import {
   varchar,
   integer,
   jsonb,
+  index,
   uniqueIndex,
   primaryKey,
 } from 'drizzle-orm/pg-core';
@@ -285,3 +286,48 @@ export const siteSettings = pgTable('site_settings', {
     .defaultNow()
     .notNull(),
 });
+
+export const analyticsSessions = pgTable(
+  'analytics_sessions',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id'),
+    ipHash: text('ip_hash').notNull(),
+    country: text('country'),
+    region: text('region'),
+    city: text('city'),
+    os: text('os'),
+    browser: text('browser'),
+    startedAt: timestamp('started_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    lastSeenIdx: index('analytics_sessions_last_seen_idx').on(table.lastSeenAt),
+    ipHashIdx: index('analytics_sessions_ip_hash_idx').on(table.ipHash),
+  })
+);
+
+export const analyticsPageviews = pgTable(
+  'analytics_pageviews',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    pageId: text('page_id').notNull(),
+    sessionId: text('session_id').notNull(),
+    path: text('path').notNull(),
+    referrer: text('referrer'),
+    startedAt: timestamp('started_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    endedAt: timestamp('ended_at', { withTimezone: true }),
+    durationMs: integer('duration_ms'),
+  },
+  (table) => ({
+    pageIdIdx: uniqueIndex('analytics_pageviews_page_id_idx').on(table.pageId),
+    sessionIdx: index('analytics_pageviews_session_idx').on(table.sessionId),
+    startedIdx: index('analytics_pageviews_started_idx').on(table.startedAt),
+  })
+);
