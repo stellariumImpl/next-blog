@@ -113,14 +113,16 @@ export default function SignInView({
           <label className={`text-xs uppercase tracking-[0.3em] ${mutedLabel}`}>
             Email Magic Link
           </label>
-          <div className="flex items-center gap-2">
-            <Mail className={`w-4 h-4 ${iconMuted}`} />
+          <div
+            className={`flex items-center gap-3 border ${inputBorder} px-3 py-2`}
+          >
+            <Mail className={`w-4 h-4 ${iconMuted} shrink-0`} />
             <input
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="you@example.com"
-              className={`flex-1 bg-transparent border ${inputBorder} px-3 py-2 text-sm outline-none`}
+              className="flex-1 min-w-0 bg-transparent text-sm outline-none"
             />
           </div>
           <button

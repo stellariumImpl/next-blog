@@ -269,7 +269,7 @@ export default async function PostPage({
   return (
     <div className="min-h-screen app-bg">
       <SiteHeader viewer={viewer} initialTheme={theme} />
-      <div className="max-w-6xl mx-auto px-6 pt-24 pb-24">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-24 pb-24">
         <div
           className={
             hasToc
