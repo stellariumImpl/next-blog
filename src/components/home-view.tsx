@@ -391,7 +391,7 @@ export default function HomeView({
               </span>
             </h1>
           </div>
-          <div
+          {/* <div
             className={`lg:col-span-4 hidden lg:block border ${borderColor} p-4 ${panelBg} transition-all`}
           >
             <div
@@ -408,7 +408,7 @@ export default function HomeView({
                 <div className="h-full bg-cyan-500 w-[40%]"></div>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </header>
 
@@ -732,7 +732,7 @@ export default function HomeView({
                         <TimeStamp
                           value={
                             post.status === "published"
-                              ? post.publishedAt ?? post.createdAt
+                              ? (post.publishedAt ?? post.createdAt)
                               : post.createdAt
                           }
                           className={`text-[10px] ${mutedTextStrong} font-bold`}
@@ -877,7 +877,6 @@ export default function HomeView({
           </div>
         )}
       </main>
-
     </div>
   );
 }

@@ -6,11 +6,7 @@ export const dynamic = "force-dynamic";
 
 const MAX_SIZE_MB = 8;
 const MAX_BYTES = MAX_SIZE_MB * 1024 * 1024;
-const ALLOWED_TYPES = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-]);
+const ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
 function sanitizeFilename(value: string) {
   return value.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -32,13 +28,16 @@ export async function POST(req: Request) {
   if (!owner || !repo || !token) {
     return NextResponse.json(
       { error: "GitHub assets not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
   const contentType = req.headers.get("content-type") ?? "";
   if (!contentType.includes("multipart/form-data")) {
-    return NextResponse.json({ error: "Invalid content type" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid content type" },
+      { status: 400 },
+    );
   }
 
   const formData = await req.formData();
@@ -50,13 +49,13 @@ export async function POST(req: Request) {
   if (file.size > MAX_BYTES) {
     return NextResponse.json(
       { error: `File too large (max ${MAX_SIZE_MB}MB)` },
-      { status: 400 }
+      { status: 400 },
     );
   }
   if (!ALLOWED_TYPES.has(file.type)) {
     return NextResponse.json(
       { error: "Only PNG, JPG, or WEBP images are allowed." },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -88,7 +87,7 @@ export async function POST(req: Request) {
     const error = await res.json().catch(() => ({}));
     return NextResponse.json(
       { error: error?.message || "GitHub upload failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
