@@ -3,6 +3,7 @@
 import { useEffect, useState, type RefObject } from 'react';
 import { useFormState } from 'react-dom';
 import { Send } from 'lucide-react';
+import { useUIStore } from '@/store/ui';
 
 export type CommentState = {
   ok: boolean;
@@ -28,7 +29,7 @@ export default function CommentForm({
   draft?: string;
   onDraftChange?: (value: string) => void;
   onSubmitted?: () => void;
-  textareaRef?: RefObject<HTMLTextAreaElement | null>;
+  textareaRef?: RefObject<HTMLTextAreaElement>;
   label?: string;
   submitLabel?: string;
   compact?: boolean;
@@ -41,6 +42,7 @@ export default function CommentForm({
   const isControlled = typeof draft === 'string' && typeof onDraftChange === 'function';
   const body = isControlled ? draft : localBody;
   const setBody = isControlled ? onDraftChange : setLocalBody;
+  const flashSystemMsg = useUIStore((state) => state.flashSystemMsg);
 
   useEffect(() => {
     if (!isControlled && typeof draft === 'string') {
@@ -61,7 +63,18 @@ export default function CommentForm({
   const buttonSize = compact ? 'px-3 py-2 text-[10px]' : 'px-4 py-2 text-xs';
 
   return (
-    <form action={formAction} className={`${formSpacing} ${className ?? ''}`}>
+    <form
+      action={formAction}
+      className={`${formSpacing} ${className ?? ''}`}
+      noValidate
+      onSubmit={(event) => {
+        if (disabled) return;
+        if (!body.trim()) {
+          event.preventDefault();
+          flashSystemMsg('COMMENT_BODY_REQUIRED');
+        }
+      }}
+    >
       {parentId && <input type="hidden" name="parentId" value={parentId} />}
       <label className="text-xs uppercase tracking-[0.3em] app-muted">
         {label}
@@ -69,7 +82,6 @@ export default function CommentForm({
       <textarea
         name="body"
         disabled={disabled}
-        required
         ref={textareaRef}
         value={body}
         onChange={(event) => setBody(event.target.value)}

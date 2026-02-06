@@ -107,8 +107,8 @@ export default function CommentThread({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const formRef = useRef<HTMLDivElement | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const replyTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
   const MAX_DEPTH = 2;
 
   const tree = useMemo(() => {
@@ -341,7 +341,7 @@ function CommentNode({
   ) => Promise<CommentState>;
   viewerId?: string | null;
   isAdmin: boolean;
-  replyTextareaRef: RefObject<HTMLTextAreaElement | null>;
+  replyTextareaRef: RefObject<HTMLTextAreaElement>;
   collapsed: Record<string, boolean>;
   setCollapsed: Dispatch<SetStateAction<Record<string, boolean>>>;
   deepExpanded: Record<string, boolean>;
@@ -683,7 +683,7 @@ function FlatReplyCard({
   ) => Promise<CommentState>;
   viewerId?: string | null;
   isAdmin: boolean;
-  replyTextareaRef: RefObject<HTMLTextAreaElement | null>;
+  replyTextareaRef: RefObject<HTMLTextAreaElement>;
   onEditSubmitted: () => void;
 }) {
   const displayName = getDisplayName(comment);

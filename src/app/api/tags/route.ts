@@ -11,5 +11,16 @@ export async function GET() {
     .from(tags)
     .orderBy(asc(tags.name));
 
-  return NextResponse.json({ tags: rows });
+  const response = NextResponse.json({ tags: rows });
+  if (process.env.NODE_ENV === "development") {
+    try {
+      const url = new URL(process.env.DATABASE_URL ?? "");
+      response.headers.set("x-db-host", url.host);
+      response.headers.set("x-db-name", url.pathname.replace("/", "") || "unknown");
+    } catch {
+      response.headers.set("x-db-host", "unknown");
+    }
+    response.headers.set("x-tag-count", String(rows.length));
+  }
+  return response;
 }

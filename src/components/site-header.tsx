@@ -66,35 +66,34 @@ export default function SiteHeader({
   const [loadingTags, setLoadingTags] = useState(false);
   const [tagError, setTagError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<
-    {
-      objectID: string;
-      slug: string;
-      title: string;
-      excerpt?: string | null;
-      tags?: string[];
-      publishedAt?: string | null;
-      _highlightResult?: {
-        title?: { value: string };
-        excerpt?: { value: string };
-        content?: { value: string };
-        tags?: { value: string }[];
-      };
-      _snippetResult?: {
-        excerpt?: { value: string };
-        content?: { value: string };
-      };
-    }[]
-  >([]);
+  type AlgoliaHit = {
+    objectID: string;
+    slug: string;
+    title: string;
+    excerpt?: string | null;
+    tags?: string[];
+    publishedAt?: string | null;
+    _highlightResult?: {
+      title?: { value: string };
+      excerpt?: { value: string };
+      content?: { value: string };
+      tags?: { value: string }[];
+    };
+    _snippetResult?: {
+      excerpt?: { value: string };
+      content?: { value: string };
+    };
+  };
+  const [searchResults, setSearchResults] = useState<AlgoliaHit[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
   const borderColor = isDark ? "border-zinc-800" : "border-zinc-300";
   const navBg = isDark ? "bg-black/90" : "bg-white/90";
   const navText = isDark ? "text-zinc-400" : "text-zinc-700";
   const mutedText = isDark ? "text-zinc-700" : "text-zinc-500";
-  const underline = "after:absolute after:left-0 after:-bottom-1 after:h-[2px] after:w-full after:scale-x-0 after:origin-left after:transition-transform";
-  const linkBase =
-    `relative flex items-center space-x-2 border-b border-transparent transition-colors ${underline}`;
+  const underline =
+    "after:absolute after:left-0 after:-bottom-1 after:h-[2px] after:w-full after:scale-x-0 after:origin-left after:transition-transform";
+  const linkBase = `relative flex items-center space-x-2 border-b border-transparent transition-colors ${underline}`;
   const hoverClasses = isDark
     ? "hover:text-white hover:after:scale-x-100 hover:after:bg-[#00ff41]"
     : "hover:text-zinc-900 hover:after:scale-x-100 hover:after:bg-zinc-400";
@@ -120,7 +119,9 @@ export default function SiteHeader({
 
   const handleToggle = () => {
     toggleTheme();
-    flashSystemMsg(`SYSTEM_PROTOCOL: ${isDark ? "LIGHT" : "DARK"}_MODE_ENGAGED`);
+    flashSystemMsg(
+      `SYSTEM_PROTOCOL: ${isDark ? "LIGHT" : "DARK"}_MODE_ENGAGED`,
+    );
     if (refreshOnToggle) {
       router.refresh();
     }
@@ -134,7 +135,7 @@ export default function SiteHeader({
   const algoliaSearchKey = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY ?? "";
   const algoliaIndexName = process.env.NEXT_PUBLIC_ALGOLIA_INDEX ?? "posts";
   const algoliaEnabled = Boolean(
-    algoliaAppId && algoliaSearchKey && algoliaIndexName
+    algoliaAppId && algoliaSearchKey && algoliaIndexName,
   );
   const algoliaClient = useMemo(() => {
     if (!algoliaEnabled) return null;
@@ -154,12 +155,12 @@ export default function SiteHeader({
     if (Number.isNaN(parsed.getTime())) return value;
     const pad = (num: number) => String(num).padStart(2, "0");
     return `${parsed.getFullYear()}.${pad(parsed.getMonth() + 1)}.${pad(
-      parsed.getDate()
+      parsed.getDate(),
     )}`;
   };
 
   const loadAllTags = async () => {
-    if (loadingTags || allTags.length > 0) return;
+    if (loadingTags) return;
     setLoadingTags(true);
     setTagError("");
     try {
@@ -167,12 +168,15 @@ export default function SiteHeader({
       if (!response.ok) {
         throw new Error("Failed to load tags.");
       }
-      const data = (await response.json()) as { tags: { name: string; slug: string }[] };
+      const data = (await response.json()) as {
+        tags: { name: string; slug: string }[];
+      };
       const tags = data.tags ?? [];
       setAllTags(tags);
       setTagLookup(tags);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Tag library unavailable.";
+      const message =
+        err instanceof Error ? err.message : "Tag library unavailable.";
       setTagError(message);
     } finally {
       setLoadingTags(false);
@@ -232,24 +236,7 @@ export default function SiteHeader({
       setSearchLoading(true);
       setSearchError("");
       try {
-        const results = await algoliaClient.search<{
-          objectID: string;
-          slug: string;
-          title: string;
-          excerpt?: string | null;
-          tags?: string[];
-          publishedAt?: string | null;
-          _highlightResult?: {
-            title?: { value: string };
-            excerpt?: { value: string };
-            content?: { value: string };
-            tags?: { value: string }[];
-          };
-          _snippetResult?: {
-            excerpt?: { value: string };
-            content?: { value: string };
-          };
-        }>({
+        const results = (await algoliaClient.search<AlgoliaHit>({
           requests: [
             {
               indexName: algoliaIndexName,
@@ -268,7 +255,11 @@ export default function SiteHeader({
               snippetEllipsisText: "…",
             },
           ],
-        });
+        })) as {
+          results?: Array<{
+            hits?: AlgoliaHit[];
+          }>;
+        };
         const hits = results.results?.[0]?.hits ?? [];
         setSearchResults(hits);
       } catch (err) {
@@ -281,7 +272,13 @@ export default function SiteHeader({
     }, 220);
 
     return () => window.clearTimeout(handle);
-  }, [searchQuery, searchOpen, algoliaEnabled, algoliaClient, algoliaIndexName]);
+  }, [
+    searchQuery,
+    searchOpen,
+    algoliaEnabled,
+    algoliaClient,
+    algoliaIndexName,
+  ]);
 
   return (
     <>
@@ -292,7 +289,6 @@ export default function SiteHeader({
           <div className="flex items-center space-x-6">
             <Link
               href={homeHref}
-             
               className="flex items-center space-x-2 bg-zinc-900 text-white px-2 py-1 border border-zinc-700"
             >
               <Zap className="w-3 h-3 text-[#00ff41]" />
@@ -322,7 +318,8 @@ export default function SiteHeader({
               >
                 <Filter className="w-3 h-3" />
                 <span className="hidden md:inline">
-                  FILTER{selectedTags.length > 0 ? ` (${selectedTags.length})` : ""}
+                  FILTER
+                  {selectedTags.length > 0 ? ` (${selectedTags.length})` : ""}
                 </span>
               </button>
             )}
@@ -340,7 +337,11 @@ export default function SiteHeader({
                 isDark ? "hover:bg-zinc-800" : "hover:bg-zinc-200"
               }`}
             >
-              {isDark ? <Moon className="w-3 h-3" /> : <Sun className="w-3 h-3" />}
+              {isDark ? (
+                <Moon className="w-3 h-3" />
+              ) : (
+                <Sun className="w-3 h-3" />
+              )}
               <span>{isDark ? "DARK" : "LIGHT"}</span>
             </button>
 
@@ -357,7 +358,7 @@ export default function SiteHeader({
           onClick={() => setSearchOpen(false)}
         >
           <div
-            className={`w-full max-w-2xl border p-10 shadow-[0_0_80px_rgba(0,0,0,0.15)] ${
+            className={`w-full max-w-2xl max-h-[80vh] overflow-hidden border p-10 shadow-[0_0_80px_rgba(0,0,0,0.15)] ${
               isDark
                 ? "border-[#00ff41]/20 bg-zinc-950 shadow-[0_0_100px_rgba(0,255,65,0.05)]"
                 : "border-[color:var(--panel-border)] bg-[color:var(--card-bg)]"
@@ -387,14 +388,20 @@ export default function SiteHeader({
                     ? "text-[#00ff41] placeholder:text-zinc-800"
                     : "text-[color:var(--app-text)] placeholder:text-[color:var(--text-muted)]"
                 }`}
-                onKeyDown={(event) => event.key === "Escape" && setSearchOpen(false)}
+                onKeyDown={(event) =>
+                  event.key === "Escape" && setSearchOpen(false)
+                }
               />
-              <div className={`text-[10px] ${isDark ? "text-zinc-700" : "text-[color:var(--text-muted)]"}`}>
+              <div
+                className={`text-[10px] ${isDark ? "text-zinc-700" : "text-[color:var(--text-muted)]"}`}
+              >
                 ESC_TO_ABORT
               </div>
             </div>
             <div className="space-y-4">
-              <span className={`text-[9px] block mb-4 tracking-[0.4em] ${isDark ? "text-zinc-600" : "text-[color:var(--text-muted)]"}`}>
+              <span
+                className={`text-[9px] block mb-4 tracking-[0.4em] ${isDark ? "text-zinc-600" : "text-[color:var(--text-muted)]"}`}
+              >
                 SEARCH_ENGINE_CONNECTED: ALGOLIA_V3
               </span>
               {searchLoading && (
@@ -406,143 +413,171 @@ export default function SiteHeader({
               {searchError && (
                 <div className="text-xs text-red-500">{searchError}</div>
               )}
-              {(searchQuery.trim().length === 0
-                ? searchItems.map((item) => ({
-                    ...item,
-                    highlightTitle: undefined,
-                    highlightExcerpt: undefined,
-                    highlightTags: undefined as string[] | undefined,
-                  }))
-                : searchResults.map((hit) => ({
-                    id: hit.objectID,
-                    slug: hit.slug,
-                    title: hit.title,
-                    excerpt: hit.excerpt ?? undefined,
-                    tags: hit.tags ?? [],
-                    publishedAt: hit.publishedAt ?? undefined,
-                    highlightTitle: hit._highlightResult?.title?.value,
-                    highlightExcerpt:
-                      hit._snippetResult?.excerpt?.value ??
-                      hit._highlightResult?.excerpt?.value,
-                    highlightContent:
-                      hit._snippetResult?.content?.value ??
-                      hit._highlightResult?.content?.value,
-                    highlightTags: hit._highlightResult?.tags
-                      ? hit._highlightResult?.tags.map((tag) => tag.value)
-                      : undefined,
-                  }))
-              ).map((item) => {
-                const highlightTitle = item.highlightTitle
-                  ? sanitizeHighlight(item.highlightTitle)
-                  : null;
-                const highlightExcerpt = item.highlightExcerpt
-                  ? sanitizeHighlight(item.highlightExcerpt)
-                  : null;
-                const highlightContent = item.highlightContent
-                  ? sanitizeHighlight(item.highlightContent)
-                  : null;
-                const highlightTags = item.highlightTags?.map((tag) =>
-                  sanitizeHighlight(tag)
-                );
-                const tags = highlightTags ?? item.tags ?? [];
-                const published = formatSearchDate(item.publishedAt);
-                const fallbackSnippet =
-                  highlightContent || item.excerpt || "No excerpt available yet.";
+              <div className="max-h-[52vh] overflow-y-auto pr-2 space-y-4">
+                {(
+                  searchQuery.trim().length === 0
+                    ? searchItems.map((item) => ({
+                        ...item,
+                        highlightTitle: undefined,
+                        highlightExcerpt: undefined,
+                        highlightContent: undefined,
+                        highlightTags: undefined as string[] | undefined,
+                      }))
+                    : searchResults.map((hit) => ({
+                        id: hit.objectID,
+                        slug: hit.slug,
+                        title: hit.title,
+                        excerpt: hit.excerpt ?? undefined,
+                        tags: hit.tags ?? [],
+                        publishedAt: hit.publishedAt ?? undefined,
+                        highlightTitle: hit._highlightResult?.title?.value,
+                        highlightExcerpt:
+                          hit._snippetResult?.excerpt?.value ??
+                          hit._highlightResult?.excerpt?.value,
+                        highlightContent:
+                          hit._snippetResult?.content?.value ??
+                          hit._highlightResult?.content?.value,
+                        highlightTags: hit._highlightResult?.tags
+                          ? hit._highlightResult?.tags.map((tag) => tag.value)
+                          : undefined,
+                      }))
+                ).map((item) => {
+                  const highlightTitle = item.highlightTitle
+                    ? sanitizeHighlight(item.highlightTitle)
+                    : null;
+                  const highlightExcerpt = item.highlightExcerpt
+                    ? sanitizeHighlight(item.highlightExcerpt)
+                    : null;
+                  const highlightContent = item.highlightContent
+                    ? sanitizeHighlight(item.highlightContent)
+                    : null;
+                  const highlightTags = item.highlightTags?.map((tag) =>
+                    sanitizeHighlight(tag),
+                  );
+                  const tags = highlightTags ?? item.tags ?? [];
+                  const published = formatSearchDate(item.publishedAt);
+                  const fallbackSnippet =
+                    highlightContent ||
+                    item.excerpt ||
+                    "No excerpt available yet.";
 
-                return (
-                  <Link
-                    key={item.id}
-                  href={`/posts/${item.slug}`}
-                 
-                  onClick={() => setSearchOpen(false)}
-                  className={`group flex flex-col gap-3 p-4 cursor-pointer transition-all border ${
-                    isDark
-                      ? "border-transparent hover:border-[#00ff41]/20 hover:bg-[#00ff41]/10"
-                      : "border-[color:var(--panel-border)] hover:border-[color:var(--accent)]/40 hover:bg-[color:var(--panel-bg)]"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div
-                      className={`text-sm uppercase font-bold ${
+                  return (
+                    <Link
+                      key={item.id}
+                      href={`/posts/${item.slug}`}
+                      onClick={() => setSearchOpen(false)}
+                      className={`group flex flex-col gap-3 p-4 cursor-pointer transition-all border ${
                         isDark
-                          ? "text-zinc-200 group-hover:text-white"
-                          : "text-[color:var(--app-text)]"
+                          ? "border-transparent hover:border-[#00ff41]/20 hover:bg-[#00ff41]/10"
+                          : "border-[color:var(--panel-border)] hover:border-[color:var(--accent)]/40 hover:bg-[color:var(--panel-bg)]"
                       }`}
                     >
-                      <span className="mr-2">/</span>
-                      {highlightTitle ? (
-                        <span
-                          className="algolia-highlight"
-                          dangerouslySetInnerHTML={{ __html: highlightTitle }}
+                      <div className="flex items-start justify-between gap-4">
+                        <div
+                          className={`text-sm uppercase font-bold ${
+                            isDark
+                              ? "text-zinc-200 group-hover:text-white"
+                              : "text-[color:var(--app-text)]"
+                          }`}
+                        >
+                          <span className="mr-2">/</span>
+                          {highlightTitle ? (
+                            <span
+                              className="algolia-highlight"
+                              dangerouslySetInnerHTML={{
+                                __html: highlightTitle,
+                              }}
+                            />
+                          ) : (
+                            item.title
+                          )}
+                        </div>
+                        <ArrowRight
+                          className={`w-3 h-3 opacity-0 group-hover:opacity-100 ${
+                            isDark
+                              ? "text-[#00ff41]"
+                              : "text-[color:var(--accent)]"
+                          }`}
                         />
-                      ) : (
-                        item.title
-                      )}
-                    </div>
-                    <ArrowRight
-                      className={`w-3 h-3 opacity-0 group-hover:opacity-100 ${
-                        isDark ? "text-[#00ff41]" : "text-[color:var(--accent)]"
-                      }`}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <div
-                      className={`text-xs leading-relaxed ${
-                        isDark ? "text-zinc-500" : "text-[color:var(--text-muted-strong)]"
-                      }`}
-                    >
-                      {highlightExcerpt || highlightContent ? (
-                        <span
-                          className="algolia-highlight"
-                          dangerouslySetInnerHTML={{
-                            __html: highlightExcerpt ?? highlightContent ?? "",
-                          }}
-                        />
-                      ) : (
-                        fallbackSnippet
-                      )}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 text-[9px] uppercase tracking-[0.3em]">
-                      {tags.length > 0 ? (
-                        tags.map((tag, index) => (
-                          <span
-                            key={`${item.id}-tag-${index}`}
-                            className={`px-2 py-1 border ${
-                              isDark
-                                ? "border-[#00ff41]/40 text-[#00ff41]"
-                                : "border-[color:var(--accent)]/50 text-[color:var(--accent)]"
-                            }`}
-                            dangerouslySetInnerHTML={{ __html: tag }}
-                          />
-                        ))
-                      ) : (
-                        <span className={isDark ? "text-zinc-600" : "text-[color:var(--text-muted)]"}>
-                          No tags
-                        </span>
-                      )}
-                      {published && (
-                        <span className={isDark ? "text-zinc-600" : "text-[color:var(--text-muted)]"}>
-                          · {published}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-                );
-              })}
-              {searchQuery.trim().length === 0 && searchItems.length === 0 && (
-                <div className={`text-xs ${isDark ? "text-zinc-600" : "text-[color:var(--text-muted)]"}`}>
-                  No results available yet.
-                </div>
-              )}
-              {searchQuery.trim().length > 0 &&
-                !searchLoading &&
-                searchResults.length === 0 &&
-                !searchError && (
-                  <div className={`text-xs ${isDark ? "text-zinc-600" : "text-[color:var(--text-muted)]"}`}>
-                    No matches found.
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <div
+                          className={`text-xs leading-relaxed ${
+                            isDark
+                              ? "text-zinc-500"
+                              : "text-[color:var(--text-muted-strong)]"
+                          }`}
+                        >
+                          {highlightExcerpt || highlightContent ? (
+                            <span
+                              className="algolia-highlight"
+                              dangerouslySetInnerHTML={{
+                                __html:
+                                  highlightExcerpt ?? highlightContent ?? "",
+                              }}
+                            />
+                          ) : (
+                            fallbackSnippet
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 text-[9px] uppercase tracking-[0.3em]">
+                          {tags.length > 0 ? (
+                            tags.map((tag, index) => (
+                              <span
+                                key={`${item.id}-tag-${index}`}
+                                className={`px-2 py-1 border ${
+                                  isDark
+                                    ? "border-[#00ff41]/40 text-[#00ff41]"
+                                    : "border-[color:var(--accent)]/50 text-[color:var(--accent)]"
+                                }`}
+                                dangerouslySetInnerHTML={{ __html: tag }}
+                              />
+                            ))
+                          ) : (
+                            <span
+                              className={
+                                isDark
+                                  ? "text-zinc-600"
+                                  : "text-[color:var(--text-muted)]"
+                              }
+                            >
+                              No tags
+                            </span>
+                          )}
+                          {published && (
+                            <span
+                              className={
+                                isDark
+                                  ? "text-zinc-600"
+                                  : "text-[color:var(--text-muted)]"
+                              }
+                            >
+                              · {published}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+                {searchQuery.trim().length === 0 && searchItems.length === 0 && (
+                  <div
+                    className={`text-xs ${isDark ? "text-zinc-600" : "text-[color:var(--text-muted)]"}`}
+                  >
+                    No results available yet.
                   </div>
                 )}
+                {searchQuery.trim().length > 0 &&
+                  !searchLoading &&
+                  searchResults.length === 0 &&
+                  !searchError && (
+                    <div
+                      className={`text-xs ${isDark ? "text-zinc-600" : "text-[color:var(--text-muted)]"}`}
+                    >
+                      No matches found.
+                    </div>
+                  )}
+              </div>
             </div>
             <button
               onClick={() => setSearchOpen(false)}
@@ -667,7 +702,7 @@ export default function SiteHeader({
                       ? allTags.filter((tag) =>
                           `${tag.name} ${tag.slug}`
                             .toLowerCase()
-                            .includes(tagSearch.toLowerCase())
+                            .includes(tagSearch.toLowerCase()),
                         )
                       : allTags
                     ).map((tag) => {
@@ -688,7 +723,9 @@ export default function SiteHeader({
                       );
                     })}
                     {!tagSearch && allTags.length === 0 && (
-                      <div className="text-xs app-muted">No tags available.</div>
+                      <div className="text-xs app-muted">
+                        No tags available.
+                      </div>
                     )}
                   </div>
                 )}

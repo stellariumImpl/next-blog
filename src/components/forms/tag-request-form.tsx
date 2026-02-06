@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useFormState } from 'react-dom';
 import { Send } from 'lucide-react';
+import { useUIStore } from '@/store/ui';
 
 export type TagRequestState = {
   ok: boolean;
@@ -21,6 +22,7 @@ export default function TagRequestForm({
   const [state, formAction] = useFormState(action, { ok: false, message: '' });
   const formRef = useRef<HTMLFormElement | null>(null);
   const buttonLabel = isAdmin ? 'Create Tag' : 'Submit Tag Request';
+  const flashSystemMsg = useUIStore((state) => state.flashSystemMsg);
 
   useEffect(() => {
     if (state.ok) {
@@ -29,11 +31,25 @@ export default function TagRequestForm({
   }, [state.ok]);
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-4">
+    <form
+      ref={formRef}
+      action={formAction}
+      className="space-y-4"
+      noValidate
+      onSubmit={(event) => {
+        if (disabled) return;
+        const form = event.currentTarget;
+        const name = (form.elements.namedItem('name') as HTMLInputElement | null)
+          ?.value ?? '';
+        if (!name.trim()) {
+          event.preventDefault();
+          flashSystemMsg('TAG_NAME_REQUIRED');
+        }
+      }}
+    >
       <input
         name="name"
         disabled={disabled}
-        required
         className="w-full border app-border bg-transparent px-3 py-2 text-sm outline-none focus:border-[var(--app-text)] disabled:opacity-60"
         placeholder={disabled ? 'Sign in to request a tag.' : 'Tag name'}
       />

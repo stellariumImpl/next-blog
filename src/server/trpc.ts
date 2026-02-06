@@ -20,6 +20,8 @@ export async function createTRPCContext(opts: { headers: Headers }) {
 }
 
 export type Context = Awaited<ReturnType<typeof createTRPCContext>>;
+type AuthedContext = Context & { user: NonNullable<Context['user']> };
+type AdminContext = AuthedContext & { profile: NonNullable<Context['profile']> };
 
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
@@ -32,7 +34,7 @@ const isAuthed = t.middleware(({ ctx, next }) => {
   if (!ctx.user) {
     throw new TRPCError({ code: 'UNAUTHORIZED' });
   }
-  return next({ ctx });
+  return next({ ctx: { ...ctx, user: ctx.user } as AuthedContext });
 });
 
 const isAdmin = t.middleware(({ ctx, next }) => {
@@ -42,7 +44,7 @@ const isAdmin = t.middleware(({ ctx, next }) => {
   if (ctx.profile?.role !== 'admin') {
     throw new TRPCError({ code: 'FORBIDDEN' });
   }
-  return next({ ctx });
+  return next({ ctx: { ...ctx, user: ctx.user, profile: ctx.profile! } as AdminContext });
 });
 
 export const protectedProcedure = publicProcedure.use(isAuthed);

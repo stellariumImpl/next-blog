@@ -117,10 +117,58 @@ body {
   font-family: "Source Code Pro Local", "Iansui", monospace;
 }
 
+.route-transition {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 255, 65, 0.08) 50%,
+    transparent 100%
+  );
+  opacity: 0;
+  pointer-events: none;
+  z-index: 60;
+  transition: opacity 120ms ease;
+}
+
+:root[data-theme="light"] .route-transition {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(207, 211, 216, 0.35) 50%,
+    transparent 100%
+  );
+}
+
+.route-transition-active {
+  opacity: 1;
+}
+
 :lang(zh),
 :lang(zh-Hans),
 :lang(zh-Hant) {
   font-family: "Iansui", "Source Code Pro Local", monospace;
+}
+
+html.spotlight-on body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+  opacity: 0;
+  background: radial-gradient(
+    480px circle at var(--spot-x, 50%) var(--spot-y, 40%),
+    rgba(0, 255, 65, 0.22) 0%,
+    rgba(0, 255, 65, 0.12) 28%,
+    rgba(0, 0, 0, 0) 70%
+  );
+  transition: opacity 200ms ease;
+}
+
+html.spotlight-on.spotlight-dark body::before {
+  opacity: 0.25 !important;
 }
 
 .tiptap-content {

@@ -6,8 +6,6 @@ import { usePathname } from "next/navigation";
 import {
   ArrowUpRight,
   MessageSquare,
-  Settings,
-  Share2,
   AlertTriangle,
   Eye,
   Heart,
@@ -42,13 +40,6 @@ export type HomePost = {
   stats: { views: number; likes: number; comments: number };
 };
 
-const TELEMETRY_DATA = [
-  { label: "SEARCH", value: "24ms", saas: "Algolia Search Engine" },
-  { label: "AI_NODE", value: "142ms", saas: "Gemini 2.5 Flash" },
-  { label: "STORAGE", value: "12ms", saas: "Firestore DB" },
-  { label: "EDGE", value: "8ms", saas: "Vercel Edge CDN" },
-];
-
 export default function HomeView({
   posts,
   viewer,
@@ -77,7 +68,6 @@ export default function HomeView({
   const PAGE_SIZE = 9;
   const pathname = usePathname();
   const [systemLoad, setSystemLoad] = useState("0.42");
-  const [scrollProgress, setScrollProgress] = useState(0);
   const theme = useEffectiveTheme(initialTheme);
   const flashSystemMsg = useUIStore((state) => state.flashSystemMsg);
   const [feedPosts, setFeedPosts] = useState<HomePost[]>(posts);
@@ -114,22 +104,17 @@ export default function HomeView({
   };
 
   useEffect(() => {
-    const handleScroll = () => {
-      const totalHeight =
-        document.documentElement.scrollHeight - window.innerHeight;
-      setScrollProgress((window.scrollY / totalHeight) * 100);
-    };
     const loadInterval = setInterval(
       () => setSystemLoad((Math.random() * 0.8 + 0.1).toFixed(2)),
       5000,
     );
 
-    window.addEventListener("scroll", handleScroll);
     return () => {
-      window.removeEventListener("scroll", handleScroll);
       clearInterval(loadInterval);
     };
   }, []);
+
+  const isDark = theme === "dark";
 
   useEffect(() => {
     const sorted = [...initialTagSlugs].sort();
@@ -358,7 +343,6 @@ export default function HomeView({
     featuredTags.forEach((tag) => map.set(tag.slug, tag.name));
     return map;
   }, [featuredTags, tagLookup]);
-  const isDark = theme === "dark";
   const bgColor = isDark ? "bg-black" : "bg-[#f6f1e7]";
   const textColor = isDark ? "text-[#00ff41]" : "text-zinc-900";
   const cardBg = isDark ? "bg-black" : "bg-white";
@@ -407,22 +391,21 @@ export default function HomeView({
               </span>
             </h1>
           </div>
-          <div
-            className={`lg:col-span-4 hidden lg:block border ${borderColor} p-4 ${panelBg} transition-all`}
-          >
+          <div className="lg:col-span-4 hidden lg:block p-2 lg:p-3 bg-transparent">
             <div
-              className={`text-[10px] ${mutedLabel} mb-3 uppercase tracking-widest flex justify-between`}
+              className={`social-card ${
+                isDark ? "social-card--dark" : "social-card--light"
+              }`}
             >
-              <span>System_Latency</span>
-              <span className="text-[#00ff41]">{systemLoad}s</span>
-            </div>
-            <div className="space-y-1.5 opacity-50">
-              <div className="h-1 bg-zinc-800 w-full rounded-full overflow-hidden">
-                <div className="h-full bg-[#00ff41] w-[60%] animate-pulse"></div>
-              </div>
-              <div className="h-1 bg-zinc-800 w-full rounded-full overflow-hidden">
-                <div className="h-full bg-cyan-500 w-[40%]"></div>
-              </div>
+              <span className="social-card__shooting-star star-a" />
+              <span className="social-card__shooting-star star-b" />
+              <img
+                src="https://uiverse.io/astronaut.png"
+                alt="Astronaut"
+                className="social-card__image"
+                width={220}
+                loading="lazy"
+              />
             </div>
           </div>
         </div>
@@ -537,13 +520,13 @@ export default function HomeView({
                     key={tag.slug}
                     type="button"
                     onClick={() => toggleTag(tag.slug, tag.name)}
-                    className={`text-[10px] uppercase tracking-[0.3em] border px-2 py-1 transition ${
+                    className={`inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.3em] border px-2 py-1 transition ${
                       isActive
                         ? "border-[#00ff41] text-[#00ff41] bg-[#00ff41]/10"
                         : "border-[#00ff41]/30 text-[#00ff41] hover:bg-[#00ff41] hover:text-black"
                     }`}
                   >
-                    {tag.name}
+                    <Tag className="h-3 w-3" /> {" " + tag.name}
                   </button>
                 );
               })
@@ -566,8 +549,9 @@ export default function HomeView({
                     key={slug}
                     type="button"
                     onClick={() => removeTag(slug)}
-                    className="text-[9px] uppercase tracking-[0.3em] border border-[#00ff41]/40 px-2 py-1 text-[#00ff41] hover:bg-[#00ff41] hover:text-black transition"
+                    className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.3em] border border-[#00ff41]/40 px-2 py-1 text-[#00ff41] hover:bg-[#00ff41] hover:text-black transition"
                   >
+                    <Tag className="h-3 w-3" />
                     {tagLabels.get(slug) ?? slug} ×
                   </button>
                 ))}
@@ -748,7 +732,7 @@ export default function HomeView({
                         <TimeStamp
                           value={
                             post.status === "published"
-                              ? post.publishedAt ?? post.createdAt
+                              ? (post.publishedAt ?? post.createdAt)
                               : post.createdAt
                           }
                           className={`text-[10px] ${mutedTextStrong} font-bold`}
@@ -893,62 +877,141 @@ export default function HomeView({
           </div>
         )}
       </main>
+      <style jsx>{`
+        .social-card {
+          position: relative;
+          height: 240px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: visible;
+          background: transparent;
+        }
 
-      <footer
-        className={`fixed bottom-0 w-full z-50 ${
-          isDark ? "bg-black border-zinc-800" : "bg-white border-zinc-200"
-        } border-t text-[10px] font-bold h-10 flex flex-col justify-center transition-colors duration-150`}
-      >
-        <div
-          className="absolute top-0 left-0 h-[2px] bg-[#00ff41] shadow-[0_0_10px_#00ff41]"
-          style={{ width: `${scrollProgress}%` }}
-        ></div>
+        .social-card::before {
+          content: "";
+          position: absolute;
+          background: radial-gradient(
+            circle,
+            rgba(0, 255, 65, 0.25),
+            transparent 70%
+          );
+          opacity: 0.7;
+          transform: translate(0, 20%);
+        }
 
-        <div
-          className={`max-w-screen-2xl mx-auto h-full px-6 flex justify-between items-center ${mutedText} w-full`}
-        >
-          <div className="flex items-center space-x-8">
-            {TELEMETRY_DATA.map((item) => (
-              <div
-                key={item.label}
-                className="flex flex-col group cursor-help relative"
-                title={`SaaS Hub: ${item.saas}`}
-              >
-                <span
-                  className={`text-[8px] tracking-tighter ${
-                    isDark ? "text-zinc-700" : "text-zinc-500"
-                  }`}
-                >
-                  {item.label}
-                </span>
-                <span className="text-[#00ff41] group-hover:text-white transition-colors">
-                  {item.value}
-                </span>
-              </div>
-            ))}
-          </div>
+        .social-card--light::before {
+          opacity: 0;
+        }
 
-          <div
-            className={`hidden lg:flex items-center space-x-6 border-l ${borderColor} pl-8 h-6`}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                navigator.clipboard.writeText(window.location.href);
-                notify("LINK_COPIED_TO_CLIPBOARD");
-              }}
-              className="flex items-center space-x-2 cursor-pointer hover:text-white transition-colors uppercase font-black"
-            >
-              <Share2 className="w-3 h-3 text-[#00ff41]" />
-              <span>Share_Intel</span>
-            </button>
-            <Settings
-              className="w-4 h-4 hover:text-white cursor-pointer"
-              onClick={() => notify("CONFIG_MODULE_LOCKED")}
-            />
-          </div>
-        </div>
-      </footer>
+        .social-card::after {
+          content: "";
+          position: absolute;
+          top: 24px;
+          left: 24px;
+          width: 2px;
+          height: 2px;
+          border-radius: 999px;
+          box-shadow:
+            180px 20px rgba(255, 255, 255, 0.7),
+            120px 90px rgba(255, 255, 255, 0.6),
+            40px 40px rgba(255, 255, 255, 0.6),
+            60px 140px rgba(255, 255, 255, 0.4),
+            200px 130px rgba(255, 255, 255, 0.5),
+            30px 170px rgba(255, 255, 255, 0.5);
+          animation: stars 2.6s linear infinite;
+          opacity: 0.7;
+        }
+
+        .social-card__image {
+          width: 220px;
+          filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.55))
+            drop-shadow(0 0 24px rgba(0, 255, 65, 0.2));
+          animation: float 9s ease-in-out infinite;
+          z-index: 1;
+        }
+
+        .social-card--light .social-card__image {
+          filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.35));
+        }
+
+        .social-card__shooting-star {
+          position: absolute;
+          width: 90px;
+          height: 1px;
+          background: linear-gradient(90deg, #ffffff, transparent);
+          opacity: 0.6;
+          animation: shooting 4.8s ease-in-out infinite;
+        }
+
+        .social-card__shooting-star.star-a {
+          top: 30px;
+          left: 60%;
+          transform: rotate(-20deg);
+          animation-delay: 0.8s;
+        }
+
+        .social-card__shooting-star.star-b {
+          top: 100px;
+          left: 70%;
+          transform: rotate(-25deg);
+          animation-delay: 2.2s;
+        }
+
+        @keyframes float {
+          0% {
+            transform: translate(0, 0) rotate(0deg);
+          }
+          25% {
+            transform: translate(-6px, -10px) rotate(-4deg);
+          }
+          50% {
+            transform: translate(0, 6px) rotate(0deg);
+          }
+          75% {
+            transform: translate(6px, -8px) rotate(4deg);
+          }
+          100% {
+            transform: translate(0, 0) rotate(0deg);
+          }
+        }
+
+        @keyframes stars {
+          0%,
+          100% {
+            opacity: 0.35;
+          }
+          50% {
+            opacity: 0.8;
+          }
+        }
+
+        @keyframes shooting {
+          0% {
+            opacity: 0;
+            transform: translateX(0) translateY(0) rotate(-20deg);
+          }
+          30% {
+            opacity: 0.9;
+          }
+          60% {
+            opacity: 0;
+            transform: translateX(-160px) translateY(20px) rotate(-20deg);
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(-160px) translateY(20px) rotate(-20deg);
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .social-card__image,
+          .social-card__shooting-star,
+          .social-card::after {
+            animation: none;
+          }
+        }
+      `}</style>
     </div>
   );
 }

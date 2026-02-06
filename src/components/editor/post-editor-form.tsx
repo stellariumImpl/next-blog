@@ -5,6 +5,7 @@ import { useFormState } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Braces, Code2, Image as ImageIcon, Link2 } from "lucide-react";
 import TagInput from "@/components/forms/tag-input";
+import { useUIStore } from "@/store/ui";
 
 export type TagOption = { id: string; name: string; slug: string };
 
@@ -91,7 +92,7 @@ export default function PostEditorForm({
   const tagTouchedRef = useRef(false);
   const router = useRouter();
   const redirectedRef = useRef(false);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -216,7 +217,7 @@ export default function PostEditorForm({
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Upload failed";
-      alert(message);
+      flashSystemMsg(message);
     } finally {
       setUploading(false);
       setUploadProgress(null);
@@ -252,9 +253,20 @@ export default function PostEditorForm({
     () => tags.filter((tag) => !normalizedTagSet.has(tag.name.toLowerCase())),
     [tags, normalizedTagSet],
   );
+  const flashSystemMsg = useUIStore((state) => state.flashSystemMsg);
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form
+      action={formAction}
+      className="space-y-6"
+      noValidate
+      onSubmit={(event) => {
+        if (!title.trim()) {
+          event.preventDefault();
+          flashSystemMsg("TITLE_REQUIRED");
+        }
+      }}
+    >
       <div className="border app-border panel-bg p-4">
         <div className="text-xs uppercase tracking-[0.3em] app-muted">Editor</div>
         <p className="mt-2 text-sm app-muted-strong">{introText}</p>
@@ -270,7 +282,6 @@ export default function PostEditorForm({
             onChange={(event) => setTitle(event.target.value)}
             className="w-full border app-border bg-transparent px-3 py-2 text-sm outline-none focus:border-[var(--app-text)]"
             placeholder="A concise, technical headline"
-            required
           />
         </div>
         <div className="space-y-2">
