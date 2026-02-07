@@ -91,7 +91,10 @@ export default function PostEngagement({
         </span>
       )}
       {showSignIn && (
-        <Link href="/sign-in" className="text-[10px] underline app-muted-strong">
+        <Link
+          href="/sign-in"
+          className="w-full text-[10px] underline app-muted-strong sm:w-auto"
+        >
           Sign in to like
         </Link>
       )}

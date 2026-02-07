@@ -184,17 +184,17 @@ export default function CommentThread({
 
   return (
     <section id="comments" className="space-y-6">
-      <div className="border app-border panel-bg px-4 py-3 flex items-center justify-between">
+      <div className="border app-border panel-bg px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3 text-xs uppercase tracking-[0.4em] app-muted">
           <MessageSquare className="h-4 w-4" />
           <span>Comments</span>
           <span className="text-[9px] app-muted">({comments.length})</span>
         </div>
-        <div className="flex items-center gap-1 text-[10px] uppercase tracking-[0.3em] app-muted">
+        <div className="grid w-full grid-cols-2 gap-2 text-[10px] uppercase tracking-[0.3em] app-muted sm:flex sm:w-auto sm:items-center sm:gap-1">
           <button
             type="button"
             onClick={() => setSort("newest")}
-            className={`flex items-center gap-2 border px-3 py-1 transition ${
+            className={`flex w-full items-center justify-center gap-2 border px-3 py-1 transition sm:w-auto ${
               sort === "newest"
                 ? "border-[#00ff41]/60 text-[#00ff41]"
                 : "app-border hover:bg-[color:var(--panel-bg)]"
@@ -206,7 +206,7 @@ export default function CommentThread({
           <button
             type="button"
             onClick={() => setSort("oldest")}
-            className={`flex items-center gap-2 border px-3 py-1 transition ${
+            className={`flex w-full items-center justify-center gap-2 border px-3 py-1 transition sm:w-auto ${
               sort === "oldest"
                 ? "border-[#00ff41]/60 text-[#00ff41]"
                 : "app-border hover:bg-[color:var(--panel-bg)]"

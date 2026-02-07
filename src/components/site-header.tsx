@@ -336,7 +336,7 @@ export default function SiteHeader({
             )}
           </div>
 
-          <div className="flex items-center justify-end gap-3 md:gap-6">
+          <div className="flex items-center justify-end gap-2 sm:gap-3 md:gap-6">
             <NavLink href="/archive" className={archiveClasses}>
               <Archive className="w-3 h-3" />
               <span className="hidden md:inline">ARCHIVE</span>
@@ -379,7 +379,9 @@ export default function SiteHeader({
               ) : (
                 <Sun className="w-3 h-3" />
               )}
-              <span>{isDark ? "DARK" : "LIGHT"}</span>
+              <span className="hidden sm:inline">
+                {isDark ? "DARK" : "LIGHT"}
+              </span>
             </button>
 
             <UserMenu viewer={viewer} hardNavigate={forceHardNav} />
