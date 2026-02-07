@@ -47,16 +47,11 @@ async function createTagRequestAction(
   }
 }
 
-async function deleteTagRequestAction(
-  prevState: TagRequestState,
-  formData: FormData
-): Promise<TagRequestState> {
+async function deleteTagRequestAction(formData: FormData): Promise<void> {
   'use server';
 
   const requestId = (formData.get('requestId') as string | null)?.trim() ?? '';
-  if (!requestId) {
-    return { ok: false, message: 'Invalid request.' };
-  }
+  if (!requestId) return;
 
   try {
     const caller = await getCaller();
@@ -64,10 +59,8 @@ async function deleteTagRequestAction(
     revalidatePath('/tags');
     revalidatePath('/admin/tags');
     revalidatePath('/');
-    return { ok: true, message: 'Tag request removed.' };
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Delete failed.';
-    return { ok: false, message };
+    console.error(error);
   }
 }
 
