@@ -16,11 +16,15 @@ import {
   Filter,
   X,
   Loader2,
+  Menu,
+  User as UserIcon,
+  LogOut,
 } from "lucide-react";
 import UserMenu, { type Viewer } from "@/components/auth/user-menu";
 import { useEffectiveTheme, useUIStore } from "@/store/ui";
 import { useFeedFilterStore } from "@/store/feed-filter";
 import { trackCustomEvent } from "@/lib/analytics-client";
+import { authClient } from "@/lib/auth-client";
 
 export default function SiteHeader({
   viewer,
@@ -90,6 +94,8 @@ export default function SiteHeader({
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
   const lastTrackedSearchRef = useRef<{ query: string; at: number } | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const borderColor = isDark ? "border-zinc-800" : "border-zinc-300";
   const navBg = isDark ? "bg-black/90" : "bg-white/90";
   const navText = isDark ? "text-zinc-400" : "text-zinc-700";
@@ -212,6 +218,7 @@ export default function SiteHeader({
   useEffect(() => {
     setSearchOpen(false);
     setFilterOpen(false);
+    setMobileMenuOpen(false);
   }, [pathname, setSearchOpen]);
 
   useEffect(() => {
@@ -321,6 +328,12 @@ export default function SiteHeader({
   const forceHardNav = pathname === "/submit";
   const NavLink = forceHardNav ? "a" : Link;
 
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    await authClient.signOut();
+    window.location.href = "/";
+  };
+
   return (
     <>
       <nav
@@ -343,6 +356,7 @@ export default function SiteHeader({
           </div>
 
           <div className="flex items-center justify-end gap-2 sm:gap-3 md:gap-6">
+            <div className="hidden md:flex items-center justify-end gap-2 sm:gap-3 md:gap-6">
             <NavLink href="/archive" className={archiveClasses}>
               <Archive className="w-3 h-3" />
               <span className="hidden md:inline">ARCHIVE</span>
@@ -391,9 +405,170 @@ export default function SiteHeader({
             </button>
 
             <UserMenu viewer={viewer} hardNavigate={forceHardNav} />
+            </div>
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              className={`md:hidden flex items-center justify-center h-7 w-8 border ${borderColor} ${
+                isDark ? "hover:bg-zinc-800" : "hover:bg-zinc-200"
+              }`}
+              aria-label="Open menu"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </nav>
+
+      {mobileMenuOpen && (
+        <div
+          className={`fixed inset-0 z-[90] md:hidden ${
+            isDark ? "bg-black/70" : "bg-black/30"
+          }`}
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <div
+            className={`absolute right-0 top-0 h-full w-[80%] max-w-[320px] border-l ${borderColor} ${
+              isDark ? "bg-zinc-950" : "bg-white"
+            } p-4 flex flex-col gap-4`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div className="text-xs uppercase tracking-[0.4em] app-muted">
+                Navigation
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center justify-center h-7 w-8 border ${borderColor}`}
+                aria-label="Close menu"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <NavLink
+                href={homeHref}
+                className="flex items-center justify-between border app-border px-3 py-2 text-xs uppercase tracking-[0.3em] app-muted hover:text-[color:var(--accent)] transition"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Home
+                <ArrowRight className="h-3 w-3" />
+              </NavLink>
+              <NavLink
+                href="/archive"
+                className="flex items-center justify-between border app-border px-3 py-2 text-xs uppercase tracking-[0.3em] app-muted hover:text-[color:var(--accent)] transition"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Archive
+                <ArrowRight className="h-3 w-3" />
+              </NavLink>
+              <NavLink
+                href="/tags"
+                className="flex items-center justify-between border app-border px-3 py-2 text-xs uppercase tracking-[0.3em] app-muted hover:text-[color:var(--accent)] transition"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Tags
+                <ArrowRight className="h-3 w-3" />
+              </NavLink>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  handleSearch();
+                }}
+                className="flex items-center justify-between border app-border px-3 py-2 text-xs uppercase tracking-[0.3em] app-muted hover:text-[color:var(--accent)] transition w-full"
+              >
+                Search
+                <Search className="h-3 w-3" />
+              </button>
+              {/* {showFilter && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterOpen(true);
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex items-center justify-between border app-border px-3 py-2 text-xs uppercase tracking-[0.3em] app-muted hover:text-[color:var(--accent)] transition"
+                >
+                  Filter Tags
+                  <Filter className="h-3 w-3" />
+                </button>
+              )} */}
+            </div>
+
+            <div className="space-y-2 mt-auto">
+              {viewer ? (
+                <>
+                  <NavLink
+                    href="/account"
+                    className="flex items-center justify-between border app-border px-3 py-2 text-xs uppercase tracking-[0.3em] app-muted hover:text-[color:var(--accent)] transition"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Profile
+                    <UserIcon className="h-3 w-3" />
+                  </NavLink>
+                  <NavLink
+                    href="/submit"
+                    className="flex items-center justify-between border app-border px-3 py-2 text-xs uppercase tracking-[0.3em] app-muted hover:text-[color:var(--accent)] transition"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Submit
+                    <ArrowRight className="h-3 w-3" />
+                  </NavLink>
+                  {viewer.role === "admin" && (
+                    <NavLink
+                      href="/admin"
+                      className="flex items-center justify-between border app-border px-3 py-2 text-xs uppercase tracking-[0.3em] app-muted hover:text-[color:var(--accent)] transition"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Admin
+                      <ArrowRight className="h-3 w-3" />
+                    </NavLink>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleToggle();
+                      }}
+                      className="flex items-center justify-between border app-border px-3 py-2 text-[10px] uppercase tracking-[0.3em] app-muted hover:text-[color:var(--accent)] transition"
+                    >
+                      {isDark ? "Light" : "Dark"}
+                      {isDark ? (
+                        <Sun className="h-3 w-3" />
+                      ) : (
+                        <Moon className="h-3 w-3" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      disabled={signingOut}
+                      className="flex items-center justify-between border app-border px-3 py-2 text-[10px] uppercase tracking-[0.3em] app-muted hover:text-red-400 transition disabled:opacity-60"
+                    >
+                      {signingOut ? "Signing out" : "Sign Out"}
+                      <LogOut className="h-3 w-3" />
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <NavLink
+                  href="/sign-in"
+                  className="flex items-center justify-between border app-border px-3 py-2 text-xs uppercase tracking-[0.3em] app-muted hover:text-[color:var(--accent)] transition"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Sign In
+                  <UserIcon className="h-3 w-3" />
+                </NavLink>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {searchOpen && (
         <div
