@@ -139,6 +139,7 @@ export const posts = pgTable(
     slug: varchar('slug', { length: 256 }).notNull(),
     excerpt: text('excerpt'),
     content: text('content'),
+    pendingTagSlugs: jsonb('pending_tag_slugs').$type<string[]>(),
     status: postStatusEnum('status').notNull().default('pending'),
     views: integer('views').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true })

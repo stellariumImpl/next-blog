@@ -1,6 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-import { and, desc, eq, inArray, or } from 'drizzle-orm';
+import { and, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import {
   comments,
   commentRevisions,
@@ -205,6 +205,14 @@ const resolveTagInputs = async ({
         )
         .returning({ id: tags.id, slug: tags.slug });
       created.forEach((tag) => finalIds.add(tag.id));
+      await db
+        .update(tagRequests)
+        .set({
+          status: 'approved',
+          reviewedAt: new Date(),
+          reviewedBy: userId,
+        })
+        .where(inArray(tagRequests.slug, newTags.map((tag) => tag.slug)));
     } else {
       const pending = await db
         .select({ slug: tagRequests.slug })
@@ -224,7 +232,91 @@ const resolveTagInputs = async ({
     }
   }
 
-  return Array.from(finalIds);
+  const pendingTagSlugs = isAdmin
+    ? []
+    : Array.from(new Set(newTags.map((tag) => tag.slug)));
+
+  return { resolvedTagIds: Array.from(finalIds), pendingTagSlugs };
+};
+
+const resolveApprovedTags = async ({
+  db,
+  tagIds,
+  tagNames,
+}: {
+  db: typeof import('@/db').db;
+  tagIds?: string[];
+  tagNames?: string[];
+}) => {
+  const uniqueIds = Array.from(new Set((tagIds ?? []).filter(Boolean)));
+  if (uniqueIds.length > 0) {
+    const validTags = await db
+      .select({ id: tags.id })
+      .from(tags)
+      .where(inArray(tags.id, uniqueIds));
+    if (validTags.length !== uniqueIds.length) {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid tag selection.' });
+    }
+  }
+
+  const normalizedNames = Array.from(
+    new Set((tagNames ?? []).map(normalizeTagName).filter(Boolean).map((name) => name.toLowerCase()))
+  ).map((lowerName) => {
+    const original = (tagNames ?? []).find(
+      (name) => normalizeTagName(name).toLowerCase() === lowerName
+    );
+    return normalizeTagName(original ?? lowerName);
+  });
+
+  const slugMap = new Map<string, string>();
+  for (const name of normalizedNames) {
+    const slug = slugFromTagName(name);
+    if (!slugMap.has(slug)) {
+      slugMap.set(slug, name);
+    }
+  }
+
+  const slugs = Array.from(slugMap.keys());
+  const existingTags =
+    slugs.length > 0 || normalizedNames.length > 0
+      ? await db
+          .select({ id: tags.id, slug: tags.slug, name: tags.name })
+          .from(tags)
+          .where(
+            slugs.length > 0 && normalizedNames.length > 0
+              ? or(inArray(tags.slug, slugs), inArray(tags.name, normalizedNames))
+              : slugs.length > 0
+                ? inArray(tags.slug, slugs)
+                : inArray(tags.name, normalizedNames)
+          )
+      : [];
+
+  const existingBySlug = new Map(existingTags.map((tag) => [tag.slug, tag]));
+  const existingByName = new Map(
+    existingTags.map((tag) => [tag.name.toLowerCase(), tag])
+  );
+
+  const approvedIds = new Set<string>(uniqueIds);
+  const pendingSlugs: string[] = [];
+
+  for (const [slug, name] of slugMap) {
+    const existing = existingBySlug.get(slug);
+    if (existing) {
+      approvedIds.add(existing.id);
+    } else {
+      const existingName = existingByName.get(name.toLowerCase());
+      if (existingName) {
+        approvedIds.add(existingName.id);
+      } else {
+        pendingSlugs.push(slug);
+      }
+    }
+  }
+
+  return {
+    approvedTagIds: Array.from(approvedIds),
+    pendingTagSlugs: Array.from(new Set(pendingSlugs)),
+  };
 };
 
 const postRouter = router({
@@ -255,6 +347,14 @@ const postRouter = router({
     }
     const userId = ctx.user.id;
     const now = new Date();
+    const { resolvedTagIds, pendingTagSlugs } = await resolveTagInputs({
+      db: ctx.db,
+      userId,
+      tagIds: input.tagIds,
+      tagNames: input.tagNames,
+      isAdmin,
+    });
+
     const [created] = await ctx.db
       .insert(posts)
       .values({
@@ -263,18 +363,11 @@ const postRouter = router({
         slug: finalSlug,
         excerpt: input.excerpt,
         content: input.content,
+        pendingTagSlugs: pendingTagSlugs.length > 0 ? pendingTagSlugs : null,
         status: isAdmin ? 'published' : 'pending',
         publishedAt: isAdmin ? now : null,
       })
       .returning();
-
-    const resolvedTagIds = await resolveTagInputs({
-      db: ctx.db,
-      userId,
-      tagIds: input.tagIds,
-      tagNames: input.tagNames,
-      isAdmin,
-    });
 
     if (resolvedTagIds.length > 0) {
       await ctx.db.insert(postTags).values(
@@ -322,7 +415,7 @@ const postRouter = router({
         if (input.content) updatePayload.content = input.content;
         await ctx.db.update(posts).set(updatePayload).where(eq(posts.id, input.postId));
         if (input.tagIds !== undefined || input.tagNames !== undefined) {
-          const resolvedTagIds = await resolveTagInputs({
+          const { resolvedTagIds } = await resolveTagInputs({
             db: ctx.db,
             userId,
             tagIds: input.tagIds,
@@ -347,13 +440,13 @@ const postRouter = router({
 
       let resolvedTagIds: string[] | undefined = undefined;
       if (input.tagIds !== undefined || input.tagNames !== undefined) {
-        resolvedTagIds = await resolveTagInputs({
+        resolvedTagIds = (await resolveTagInputs({
           db: ctx.db,
           userId,
           tagIds: input.tagIds,
           tagNames: input.tagNames,
           isAdmin: false,
-        });
+        })).resolvedTagIds;
       }
 
       const [revision] = await ctx.db
@@ -637,9 +730,39 @@ const adminRouter = router({
         .update(posts)
         .set({ status: 'published', publishedAt: now, updatedAt: now })
         .where(eq(posts.id, input.postId))
-        .returning();
+        .returning({
+          id: posts.id,
+          pendingTagSlugs: posts.pendingTagSlugs,
+        });
 
       if (updated) {
+        const pendingTagSlugs = (updated.pendingTagSlugs ?? []) as string[];
+        if (pendingTagSlugs.length > 0) {
+          const approved = await ctx.db
+            .select({ id: tags.id, slug: tags.slug })
+            .from(tags)
+            .where(inArray(tags.slug, pendingTagSlugs));
+
+          if (approved.length > 0) {
+            await ctx.db.insert(postTags).values(
+              approved.map((tag) => ({
+                postId: updated.id,
+                tagId: tag.id,
+              }))
+            );
+            const approvedSlugs = new Set(approved.map((tag) => tag.slug));
+            const remaining = pendingTagSlugs.filter(
+              (slug) => !approvedSlugs.has(slug)
+            );
+            await ctx.db
+              .update(posts)
+              .set({
+                pendingTagSlugs: remaining.length > 0 ? remaining : null,
+              })
+              .where(eq(posts.id, updated.id));
+          }
+        }
+
         await upsertAlgoliaPost(ctx.db, updated.id);
       }
       return updated;
@@ -725,25 +848,28 @@ const adminRouter = router({
         .where(eq(posts.id, patch.postId));
 
       if (patch.tagIds !== undefined || patch.tagNames !== undefined) {
-        if (!ctx.user) {
-          throw new TRPCError({ code: 'UNAUTHORIZED' });
-        }
-        const resolvedTagIds = await resolveTagInputs({
+        const { approvedTagIds, pendingTagSlugs } = await resolveApprovedTags({
           db: ctx.db,
-          userId: ctx.user.id,
           tagIds: patch.tagIds ?? undefined,
           tagNames: patch.tagNames ?? undefined,
-          isAdmin: true,
         });
+
         await ctx.db.delete(postTags).where(eq(postTags.postId, patch.postId));
-        if (resolvedTagIds.length > 0) {
+        if (approvedTagIds.length > 0) {
           await ctx.db.insert(postTags).values(
-            resolvedTagIds.map((tagId) => ({
+            approvedTagIds.map((tagId) => ({
               postId: patch.postId,
               tagId,
             }))
           );
         }
+        await ctx.db
+          .update(posts)
+          .set({
+            pendingTagSlugs: pendingTagSlugs.length > 0 ? pendingTagSlugs : null,
+            updatedAt: now,
+          })
+          .where(eq(posts.id, patch.postId));
       }
 
       await upsertAlgoliaPost(ctx.db, patch.postId);
@@ -915,12 +1041,51 @@ const adminRouter = router({
       }
 
       const payload = request[0];
-      await ctx.db.insert(tags).values({
-        name: payload.name,
-        slug: payload.slug,
-        createdBy: payload.requestedBy,
-        approvedBy: ctx.user.id,
-      });
+      const [createdTag] = await ctx.db
+        .insert(tags)
+        .values({
+          name: payload.name,
+          slug: payload.slug,
+          createdBy: payload.requestedBy,
+          approvedBy: ctx.user.id,
+        })
+        .returning({ id: tags.id, slug: tags.slug });
+
+      if (createdTag) {
+        const slug = createdTag.slug;
+        const pendingPosts = await ctx.db.execute(sql`
+          SELECT id
+          FROM ${posts}
+          WHERE pending_tag_slugs @> ${JSON.stringify([slug])}::jsonb
+        `);
+        const postIds = (pendingPosts.rows ?? []).map((row) =>
+          String(row.id)
+        );
+        if (postIds.length > 0) {
+          await ctx.db
+            .insert(postTags)
+            .values(
+              postIds.map((postId) => ({
+                postId,
+                tagId: createdTag.id,
+              }))
+            )
+            .onConflictDoNothing();
+
+          await ctx.db.execute(sql`
+            UPDATE ${posts}
+            SET pending_tag_slugs = (
+              SELECT CASE
+                WHEN COUNT(*) = 0 THEN NULL
+                ELSE jsonb_agg(value)
+              END
+              FROM jsonb_array_elements_text(${posts.pendingTagSlugs}) value
+              WHERE value <> ${slug}
+            )
+            WHERE pending_tag_slugs @> ${JSON.stringify([slug])}::jsonb
+          `);
+        }
+      }
 
       const [updated] = await ctx.db
         .update(tagRequests)
