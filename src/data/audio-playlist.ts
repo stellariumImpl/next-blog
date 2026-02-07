@@ -7,7 +7,71 @@ export type AudioTrack = {
   description?: string;
 };
 
+// Bridge-Over-Troubled-Water-Simon&Garfunkel.mp3
+// Gasshow-illion.mp3
+// Lemon-米津玄師.mp3
+// Pretender-Official髭男dism.mp3
+// イエスタデイ-Official髭男dism.mp3
+// 十面埋伏-陈奕迅.mp3
+// 夕焼けの歌-近藤真彦.mp3
+// 孤独患者-陈奕迅.mp3
+// 青い栞-Galileo-Galilei.mp3
+
 export const audioPlaylist: AudioTrack[] = [
+  {
+    id: "blue-shiori",
+    title: "青い栞",
+    artist: "Galileo Galilei",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/半岛浴血-米津玄師.mp3",
+  },
+  {
+    id: "gou-du-zheng-xin",
+    title: "孤独患者",
+    artist: "陈奕迅",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/孤独患者-陈奕迅.mp3",
+  },
+  {
+    id: "yi-ya-ke-de-yue",
+    title: "夕焼けの歌",
+    artist: "近藤真彦",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/夕焼けの歌-近藤真彦.mp3",
+  },
+  {
+    id: "shi-mian-mei-fu",
+    title: "十面埋伏",
+    artist: "陈奕迅",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/十面埋伏-陈奕迅.mp3",
+  },
+  {
+    id: "yi-shi-dai-official髭男dism",
+    title: "イエスタデイ",
+    artist: "Official髭男dism",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/イエスタデイ-Official髭男dism.mp3",
+  },
+  {
+    id: "pretender-official髭男dism",
+    title: "Pretender",
+    artist: "Official髭男dism",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/Pretender-Official髭男dism.mp3",
+  },
+  {
+    id: "lemon-米津玄師",
+    title: "Lemon",
+    artist: "米津玄師",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/Lemon-米津玄師.mp3",
+  },
+  {
+    id: "gasshow-illion",
+    title: "Gasshow",
+    artist: "illion",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/Gasshow-illion.mp3",
+  },
+  {
+    id: "bridge-over-troubled-water",
+    title: "Bridge Over Troubled Water",
+    artist: "Simon & Garfunkel",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/Bridge-Over-Troubled-Water-Simon&Garfunkel.mp3",
+  },
   {
     id: "never-enough",
     title: "Never Enough",

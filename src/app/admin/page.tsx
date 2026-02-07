@@ -407,6 +407,81 @@ export default async function AdminHome() {
         {!analyticsError && (
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
             <div className="border border-zinc-800 rounded p-4 bg-zinc-900/40 space-y-4">
+              <div className="text-xs uppercase text-zinc-500">Top Pages</div>
+              {stats.topPages.length === 0 ? (
+                <div className="text-sm text-zinc-500">
+                  No traffic recorded yet.
+                </div>
+              ) : (
+                <div className="space-y-2 text-sm">
+                  {stats.topPages.map((page) => (
+                    <div
+                      key={page.path}
+                      className="flex min-w-0 items-center justify-between gap-3 border-b border-zinc-800/60 pb-2"
+                    >
+                      <span className="truncate pr-4">{page.path}</span>
+                      <span className="min-w-0 text-zinc-400 truncate">{page.views}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="border border-zinc-800 rounded p-4 bg-zinc-900/40 space-y-4">
+              <div className="text-xs uppercase text-zinc-500">
+                Global Heat (Time Spent)
+              </div>
+              {stats.topHeat.length === 0 ? (
+                <div className="text-sm text-zinc-500">
+                  No duration data yet.
+                </div>
+              ) : (
+                <div className="space-y-2 text-sm">
+                  {stats.topHeat.map((page) => (
+                    <div
+                      key={page.path}
+                      className="flex min-w-0 items-center justify-between gap-3 border-b border-zinc-800/60 pb-2"
+                    >
+                      <span className="truncate pr-4">{page.path}</span>
+                      <span className="min-w-0 text-zinc-400 truncate">
+                        {formatDuration(page.totalDuration)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="border border-zinc-800 rounded p-4 bg-zinc-900/40 space-y-4">
+              <div className="text-xs uppercase text-zinc-500">
+                Tag Heat (Time Spent)
+              </div>
+              {stats.tagHeat.length === 0 ? (
+                <div className="text-sm text-zinc-500">
+                  No tag data yet.
+                </div>
+              ) : (
+                <div className="space-y-2 text-sm">
+                  {stats.tagHeat.map((tag) => (
+                    <div
+                      key={tag.slug}
+                      className="flex min-w-0 items-center justify-between gap-3 border-b border-zinc-800/60 pb-2"
+                    >
+                      <span className="truncate pr-4">{tag.name}</span>
+                      <span className="text-zinc-400">
+                        {formatDuration(tag.totalDuration)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {!analyticsError && (
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+            <div className="border border-zinc-800 rounded p-4 bg-zinc-900/40 space-y-4">
               <div className="text-xs uppercase text-zinc-500">
                 Search Heat (Top Queries)
               </div>
@@ -419,7 +494,7 @@ export default async function AdminHome() {
                   {stats.searchHeat.map((row, index) => (
                     <div
                       key={`${row.label}-${index}`}
-                      className="flex items-center justify-between border-b border-zinc-800/60 pb-2"
+                      className="flex min-w-0 items-center justify-between gap-3 border-b border-zinc-800/60 pb-2"
                     >
                       <span className="truncate pr-4">{row.label}</span>
                       <span className="text-zinc-400">{row.searches}</span>
@@ -442,7 +517,7 @@ export default async function AdminHome() {
                   {stats.topTransitions.map((row, index) => (
                     <div
                       key={`${row.source}-${row.target}-${index}`}
-                      className="flex items-center justify-between border-b border-zinc-800/60 pb-2"
+                      className="flex min-w-0 items-center justify-between gap-3 border-b border-zinc-800/60 pb-2"
                     >
                       <span className="truncate pr-4">
                         {row.source} → {row.target}
@@ -509,6 +584,7 @@ export default async function AdminHome() {
                 <DropdownSelect
                   name="rangeDays"
                   defaultValue=""
+                  className="min-w-0"
                   options={[
                     { label: "All time", value: "" },
                     { label: "Last 30 days", value: "30" },
@@ -541,6 +617,7 @@ export default async function AdminHome() {
               <DropdownSelect
                 name="type"
                 defaultValue="sessions"
+                className="min-w-0"
                 options={[
                   { label: "Sessions", value: "sessions" },
                   { label: "Pageviews", value: "pageviews" },
@@ -551,13 +628,13 @@ export default async function AdminHome() {
                 type="date"
                 name="from"
                 defaultValue={defaultFrom}
-                className="border border-zinc-800 bg-transparent px-3 py-2 text-xs uppercase tracking-[0.3em] text-zinc-400 outline-none focus:border-[color:var(--accent)]"
+                className="min-w-0 border border-zinc-800 bg-transparent px-3 py-2 text-xs uppercase tracking-[0.3em] text-zinc-400 outline-none focus:border-[color:var(--accent)]"
               />
               <input
                 type="date"
                 name="to"
                 defaultValue={defaultTo}
-                className="border border-zinc-800 bg-transparent px-3 py-2 text-xs uppercase tracking-[0.3em] text-zinc-400 outline-none focus:border-[color:var(--accent)]"
+                className="min-w-0 border border-zinc-800 bg-transparent px-3 py-2 text-xs uppercase tracking-[0.3em] text-zinc-400 outline-none focus:border-[color:var(--accent)]"
               />
               <button
                 type="submit"
@@ -580,7 +657,7 @@ export default async function AdminHome() {
               <Shield className="h-4 w-4" />
               Recent Sessions (Last 30 Days)
             </div>
-            <div className="text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+            <div className="text-[10px] uppercase tracking-[0.3em] text-zinc-500 break-all">
               Showing {recentSessions.length} sessions
             </div>
           </div>
@@ -608,16 +685,16 @@ export default async function AdminHome() {
                   return (
                     <div
                       key={session.id}
-                      className="grid grid-cols-1 lg:grid-cols-6 gap-4 px-4 py-3 text-sm"
+                      className="grid min-w-0 grid-cols-1 gap-4 px-4 py-3 text-sm lg:grid-cols-6"
                     >
-                      <div className="space-y-1">
+                      <div className="min-w-0 space-y-1">
                         <Link
                           href={`/admin/analytics/${session.id}`}
                           className="text-[color:var(--accent)] hover:underline"
                         >
                           {session.ipHash.slice(0, 10)}…
                         </Link>
-                        <div className="text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+                        <div className="text-[10px] uppercase tracking-[0.3em] text-zinc-500 break-all">
                           {session.entryPath ?? '--'} → {session.exitPath ?? '--'}
                         </div>
                         {isBounce && (
@@ -626,10 +703,10 @@ export default async function AdminHome() {
                           </div>
                         )}
                       </div>
-                      <div className="text-zinc-400">
+                      <div className="min-w-0 text-zinc-400 truncate">
                         {area || '--'}
                       </div>
-                      <div className="text-zinc-400">
+                      <div className="min-w-0 text-zinc-400 truncate">
                         {session.os ?? '--'} · {session.browser ?? '--'}
                       </div>
                       <div className="text-zinc-400">

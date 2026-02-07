@@ -83,6 +83,8 @@ export default async function SessionDetailPage({
     (a, b) =>
       new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime()
   );
+  const sequencePreview = sequence.slice(0, 10);
+  const eventsPreview = events.slice(0, 10);
 
   return (
     <div className="space-y-8">
@@ -125,16 +127,22 @@ export default async function SessionDetailPage({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="border border-zinc-800 rounded bg-zinc-900/40 overflow-hidden">
-          <div className="border-b border-zinc-800/60 px-4 py-3 text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-            Page Sequence Timeline
+          <div className="border-b border-zinc-800/60 px-4 py-3 text-[10px] uppercase tracking-[0.3em] text-zinc-500 flex items-center justify-between">
+            <span>Page Sequence Timeline</span>
+            <Link
+              href={`/admin/analytics/${sessionId}/pageviews`}
+              className="text-[10px] uppercase tracking-[0.3em] text-[color:var(--accent)] hover:underline"
+            >
+              View details
+            </Link>
           </div>
           <div className="divide-y divide-zinc-800/60">
-            {pageviews.length === 0 ? (
+            {sequencePreview.length === 0 ? (
               <div className="px-4 py-6 text-sm text-zinc-500">
                 No pageviews recorded for this session.
               </div>
             ) : (
-              sequence.map((view) => (
+              sequencePreview.map((view) => (
                   <div key={view.id} className="px-4 py-3 text-sm space-y-1">
                     <div className="flex items-center justify-between gap-3">
                       <span className="truncate">{view.path}</span>
@@ -153,16 +161,22 @@ export default async function SessionDetailPage({
         </div>
 
         <div className="border border-zinc-800 rounded bg-zinc-900/40 overflow-hidden">
-          <div className="border-b border-zinc-800/60 px-4 py-3 text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-            Events
+          <div className="border-b border-zinc-800/60 px-4 py-3 text-[10px] uppercase tracking-[0.3em] text-zinc-500 flex items-center justify-between">
+            <span>Events</span>
+            <Link
+              href={`/admin/analytics/${sessionId}/events`}
+              className="text-[10px] uppercase tracking-[0.3em] text-[color:var(--accent)] hover:underline"
+            >
+              View details
+            </Link>
           </div>
           <div className="divide-y divide-zinc-800/60">
-            {events.length === 0 ? (
+            {eventsPreview.length === 0 ? (
               <div className="px-4 py-6 text-sm text-zinc-500">
                 No events recorded.
               </div>
             ) : (
-              events.map((event) => (
+              eventsPreview.map((event) => (
                 <div key={event.id} className="px-4 py-3 text-sm space-y-1">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2 min-w-0">

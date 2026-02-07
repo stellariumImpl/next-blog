@@ -110,7 +110,7 @@ export default function AnalyticsTracker() {
     ) {
       return;
     }
-    if (clickable.isContentEditable) return;
+    if (clickable instanceof HTMLElement && clickable.isContentEditable) return;
 
     const labelAttr =
       clickable.getAttribute("data-analytics-label") ||

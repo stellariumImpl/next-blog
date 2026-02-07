@@ -32,7 +32,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           </div>
           <AdminNav items={navItems} />
         </aside>
-        <main className="flex-1 p-8 space-y-6">
+        <main className="flex-1 min-w-0 p-8 space-y-6">
           <AdminMobileNav items={navItems} />
           <div className="flex items-center justify-between">
             <Link
