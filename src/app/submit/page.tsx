@@ -20,6 +20,8 @@ async function createPostAction(
   const title = (formData.get('title') as string | null)?.trim() ?? '';
   const excerpt = (formData.get('excerpt') as string | null)?.trim() || undefined;
   const content = (formData.get('content') as string | null)?.trim() || undefined;
+  const idempotencyKey =
+    (formData.get('idempotencyKey') as string | null)?.trim() ?? '';
   const tagNames = formData
     .getAll('tagNames')
     .map((value) => String(value))
@@ -27,6 +29,9 @@ async function createPostAction(
 
   if (!title) {
     return { ok: false, message: 'Title is required.' };
+  }
+  if (!idempotencyKey) {
+    return { ok: false, message: 'Missing submission key.' };
   }
 
   try {
@@ -36,6 +41,7 @@ async function createPostAction(
       excerpt,
       content,
       tagNames,
+      idempotencyKey,
     });
     if (!created) {
       return { ok: false, message: 'Submission failed.' };

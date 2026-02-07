@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Braces, Code2, Image as ImageIcon, Link2 } from "lucide-react";
 import TagInput from "@/components/forms/tag-input";
 import { useUIStore } from "@/store/ui";
+import { createIdempotencyKey } from "@/lib/idempotency";
 
 export type TagOption = { id: string; name: string; slug: string };
 
@@ -96,6 +97,7 @@ export default function PostEditorForm({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState(createIdempotencyKey());
 
   useEffect(() => {
     setTitle(initialTitle);
@@ -119,6 +121,12 @@ export default function PostEditorForm({
       router.push(state.redirectTo);
     }
   }, [router, state.ok, state.redirectTo]);
+
+  useEffect(() => {
+    if (state.ok) {
+      setIdempotencyKey(createIdempotencyKey());
+    }
+  }, [state.ok]);
 
   const handleLink = () => {
     const url = window.prompt("Enter URL");
@@ -267,6 +275,7 @@ export default function PostEditorForm({
         }
       }}
     >
+      <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
       <div className="border app-border panel-bg p-4">
         <div className="text-xs uppercase tracking-[0.3em] app-muted">Editor</div>
         <p className="mt-2 text-sm app-muted-strong">{introText}</p>

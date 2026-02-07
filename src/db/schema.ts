@@ -138,6 +138,7 @@ export const posts = pgTable(
     authorId: text('author_id').notNull(),
     title: varchar('title', { length: 256 }).notNull(),
     slug: varchar('slug', { length: 256 }).notNull(),
+    idempotencyKey: uuid('idempotency_key'),
     excerpt: text('excerpt'),
     content: text('content'),
     pendingTagSlugs: jsonb('pending_tag_slugs').$type<string[]>(),
@@ -153,57 +154,91 @@ export const posts = pgTable(
   },
   (table) => ({
     slugIdx: uniqueIndex('posts_slug_idx').on(table.slug),
+    idempotencyIdx: uniqueIndex('posts_author_idempotency_idx').on(
+      table.authorId,
+      table.idempotencyKey
+    ),
   })
 );
 
-export const postRevisions = pgTable('post_revisions', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  postId: uuid('post_id').notNull(),
-  authorId: text('author_id').notNull(),
-  title: varchar('title', { length: 256 }),
-  excerpt: text('excerpt'),
-  content: text('content'),
-  tagIds: jsonb('tag_ids').$type<string[]>(),
-  tagNames: jsonb('tag_names').$type<string[]>(),
-  status: reviewStatusEnum('status').notNull().default('pending'),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
-  reviewedBy: text('reviewed_by'),
-  reviewerNote: text('reviewer_note'),
-});
+export const postRevisions = pgTable(
+  'post_revisions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    postId: uuid('post_id').notNull(),
+    authorId: text('author_id').notNull(),
+    idempotencyKey: uuid('idempotency_key'),
+    title: varchar('title', { length: 256 }),
+    excerpt: text('excerpt'),
+    content: text('content'),
+    tagIds: jsonb('tag_ids').$type<string[]>(),
+    tagNames: jsonb('tag_names').$type<string[]>(),
+    status: reviewStatusEnum('status').notNull().default('pending'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    reviewedBy: text('reviewed_by'),
+    reviewerNote: text('reviewer_note'),
+  },
+  (table) => ({
+    idempotencyIdx: uniqueIndex('post_revisions_author_idempotency_idx').on(
+      table.authorId,
+      table.idempotencyKey
+    ),
+  })
+);
 
-export const comments = pgTable('comments', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  postId: uuid('post_id').notNull(),
-  authorId: text('author_id').notNull(),
-  parentId: uuid('parent_id'),
-  body: text('body').notNull(),
-  status: reviewStatusEnum('status').notNull().default('pending'),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  approvedAt: timestamp('approved_at', { withTimezone: true }),
-  reviewedBy: text('reviewed_by'),
-});
+export const comments = pgTable(
+  'comments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    postId: uuid('post_id').notNull(),
+    authorId: text('author_id').notNull(),
+    idempotencyKey: uuid('idempotency_key'),
+    parentId: uuid('parent_id'),
+    body: text('body').notNull(),
+    status: reviewStatusEnum('status').notNull().default('pending'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    approvedAt: timestamp('approved_at', { withTimezone: true }),
+    reviewedBy: text('reviewed_by'),
+  },
+  (table) => ({
+    idempotencyIdx: uniqueIndex('comments_author_idempotency_idx').on(
+      table.authorId,
+      table.idempotencyKey
+    ),
+  })
+);
 
-export const commentRevisions = pgTable('comment_revisions', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  commentId: uuid('comment_id').notNull(),
-  authorId: text('author_id').notNull(),
-  body: text('body').notNull(),
-  status: reviewStatusEnum('status').notNull().default('pending'),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
-  reviewedBy: text('reviewed_by'),
-  reviewerNote: text('reviewer_note'),
-});
+export const commentRevisions = pgTable(
+  'comment_revisions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    commentId: uuid('comment_id').notNull(),
+    authorId: text('author_id').notNull(),
+    idempotencyKey: uuid('idempotency_key'),
+    body: text('body').notNull(),
+    status: reviewStatusEnum('status').notNull().default('pending'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    reviewedBy: text('reviewed_by'),
+    reviewerNote: text('reviewer_note'),
+  },
+  (table) => ({
+    idempotencyIdx: uniqueIndex('comment_revisions_author_idempotency_idx').on(
+      table.authorId,
+      table.idempotencyKey
+    ),
+  })
+);
 
 export const tags = pgTable(
   'tags',
@@ -222,34 +257,54 @@ export const tags = pgTable(
   })
 );
 
-export const tagRequests = pgTable('tag_requests', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  name: varchar('name', { length: 64 }).notNull(),
-  slug: varchar('slug', { length: 64 }).notNull(),
-  requestedBy: text('requested_by').notNull(),
-  status: reviewStatusEnum('status').notNull().default('pending'),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
-  reviewedBy: text('reviewed_by'),
-  reviewerNote: text('reviewer_note'),
-});
+export const tagRequests = pgTable(
+  'tag_requests',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    name: varchar('name', { length: 64 }).notNull(),
+    slug: varchar('slug', { length: 64 }).notNull(),
+    requestedBy: text('requested_by').notNull(),
+    idempotencyKey: uuid('idempotency_key'),
+    status: reviewStatusEnum('status').notNull().default('pending'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    reviewedBy: text('reviewed_by'),
+    reviewerNote: text('reviewer_note'),
+  },
+  (table) => ({
+    idempotencyIdx: uniqueIndex('tag_requests_author_idempotency_idx').on(
+      table.requestedBy,
+      table.idempotencyKey
+    ),
+  })
+);
 
-export const tagRevisions = pgTable('tag_revisions', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  tagId: uuid('tag_id').notNull(),
-  authorId: text('author_id').notNull(),
-  name: varchar('name', { length: 64 }).notNull(),
-  slug: varchar('slug', { length: 64 }).notNull(),
-  status: reviewStatusEnum('status').notNull().default('pending'),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
-  reviewedBy: text('reviewed_by'),
-  reviewerNote: text('reviewer_note'),
-});
+export const tagRevisions = pgTable(
+  'tag_revisions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    tagId: uuid('tag_id').notNull(),
+    authorId: text('author_id').notNull(),
+    idempotencyKey: uuid('idempotency_key'),
+    name: varchar('name', { length: 64 }).notNull(),
+    slug: varchar('slug', { length: 64 }).notNull(),
+    status: reviewStatusEnum('status').notNull().default('pending'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    reviewedBy: text('reviewed_by'),
+    reviewerNote: text('reviewer_note'),
+  },
+  (table) => ({
+    idempotencyIdx: uniqueIndex('tag_revisions_author_idempotency_idx').on(
+      table.authorId,
+      table.idempotencyKey
+    ),
+  })
+);
 
 export const postTags = pgTable(
   'post_tags',

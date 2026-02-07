@@ -38,15 +38,25 @@ async function createCommentAction(
   "use server";
 
   const body = (formData.get("body") as string | null)?.trim() ?? "";
+  const idempotencyKey =
+    (formData.get("idempotencyKey") as string | null)?.trim() ?? "";
   const parentId =
     (formData.get("parentId") as string | null)?.trim() || undefined;
   if (!body) {
     return { ok: false, message: "Comment body is required." };
   }
+  if (!idempotencyKey) {
+    return { ok: false, message: "Missing submission key." };
+  }
 
   try {
     const caller = await getCaller();
-    const created = await caller.comments.submit({ postId, body, parentId });
+    const created = await caller.comments.submit({
+      postId,
+      body,
+      parentId,
+      idempotencyKey,
+    });
     const message =
       created?.status === "approved"
         ? "Comment published."
@@ -68,13 +78,22 @@ async function editCommentAction(
   "use server";
 
   const body = (formData.get("body") as string | null)?.trim() ?? "";
+  const idempotencyKey =
+    (formData.get("idempotencyKey") as string | null)?.trim() ?? "";
   if (!body) {
     return { ok: false, message: "Comment body is required." };
+  }
+  if (!idempotencyKey) {
+    return { ok: false, message: "Missing submission key." };
   }
 
   try {
     const caller = await getCaller();
-    const updated = await caller.comments.requestEdit({ commentId, body });
+    const updated = await caller.comments.requestEdit({
+      commentId,
+      body,
+      idempotencyKey,
+    });
     const message =
       updated && "status" in updated && updated.status !== "applied"
         ? "Edit submitted for review."

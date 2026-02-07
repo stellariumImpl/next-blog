@@ -23,6 +23,8 @@ async function editPostAction(
     (formData.get('excerpt') as string | null)?.trim() || undefined;
   const content =
     (formData.get('content') as string | null)?.trim() || undefined;
+  const idempotencyKey =
+    (formData.get('idempotencyKey') as string | null)?.trim() ?? '';
   const tagNamesProvided = formData.get('tagNamesProvided') === '1';
   const tagNames = formData
     .getAll('tagNames')
@@ -31,6 +33,9 @@ async function editPostAction(
 
   if (!title && !excerpt && !content && !tagNamesProvided) {
     return { ok: false, message: 'Provide at least one field to update.' };
+  }
+  if (!idempotencyKey) {
+    return { ok: false, message: 'Missing submission key.' };
   }
 
   try {
@@ -41,6 +46,7 @@ async function editPostAction(
       excerpt,
       content,
       tagNames: tagNamesProvided ? tagNames : undefined,
+      idempotencyKey,
     });
     const message =
       updated && 'status' in updated && updated.status !== 'applied'

@@ -22,9 +22,14 @@ async function editTagAction(
   'use server';
   const name = (formData.get('name') as string | null)?.trim() ?? '';
   const slug = (formData.get('slug') as string | null)?.trim() ?? '';
+  const idempotencyKey =
+    (formData.get('idempotencyKey') as string | null)?.trim() ?? '';
 
   if (!name && !slug) {
     return { ok: false, message: 'Provide a new name or slug.' };
+  }
+  if (!idempotencyKey) {
+    return { ok: false, message: 'Missing submission key.' };
   }
 
   try {
@@ -33,6 +38,7 @@ async function editTagAction(
       tagId,
       name: name || undefined,
       slug: slug || undefined,
+      idempotencyKey,
     });
     const message =
       updated && 'status' in updated

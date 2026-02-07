@@ -1,6 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-import { and, desc, eq, inArray, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm';
 import {
   comments,
   commentRevisions,
@@ -23,6 +23,7 @@ const postInput = z.object({
   content: z.string().optional(),
   tagIds: z.array(z.string().uuid()).optional(),
   tagNames: z.array(z.string().min(1).max(64)).optional(),
+  idempotencyKey: z.string().uuid(),
 });
 
 const postEditInput = z
@@ -33,6 +34,7 @@ const postEditInput = z
     content: z.string().min(1).optional(),
     tagIds: z.array(z.string().uuid()).optional(),
     tagNames: z.array(z.string().min(1).max(64)).optional(),
+    idempotencyKey: z.string().uuid(),
   })
   .refine(
     (data) =>
@@ -50,22 +52,26 @@ const commentInput = z.object({
   postId: z.string().uuid(),
   body: z.string().min(1).max(2000),
   parentId: z.string().uuid().optional(),
+  idempotencyKey: z.string().uuid(),
 });
 
 const commentEditInput = z.object({
   commentId: z.string().uuid(),
   body: z.string().min(1).max(2000),
+  idempotencyKey: z.string().uuid(),
 });
 
 const tagRequestInput = z.object({
   name: z.string().min(1).max(64),
   slug: z.string().max(64).optional(),
+  idempotencyKey: z.string().uuid(),
 });
 
 const tagEditInput = z.object({
   tagId: z.string().uuid(),
   name: z.string().max(64).optional(),
   slug: z.string().max(64).optional(),
+  idempotencyKey: z.string().uuid(),
 });
 
 const slugFromText = (value: string, maxLength: number, fallback: string) => {
@@ -329,6 +335,39 @@ const postRouter = router({
   }),
   submit: protectedProcedure.input(postInput).mutation(async ({ ctx, input }) => {
     const isAdmin = ctx.profile?.role === 'admin';
+    if (!ctx.user) {
+      throw new TRPCError({ code: 'UNAUTHORIZED' });
+    }
+    const userId = ctx.user.id;
+
+    const existingByKey = await ctx.db
+      .select()
+      .from(posts)
+      .where(and(eq(posts.authorId, userId), eq(posts.idempotencyKey, input.idempotencyKey)))
+      .limit(1);
+    if (existingByKey.length > 0) {
+      return existingByKey[0];
+    }
+
+    const dedupeSince = new Date(Date.now() - 10 * 60 * 1000);
+    const duplicatePost = await ctx.db
+      .select()
+      .from(posts)
+      .where(
+        and(
+          eq(posts.authorId, userId),
+          eq(posts.title, input.title),
+          sql`coalesce(${posts.excerpt}, '') = ${input.excerpt ?? ''}`,
+          sql`coalesce(${posts.content}, '') = ${input.content ?? ''}`,
+          gte(posts.createdAt, dedupeSince)
+        )
+      )
+      .orderBy(desc(posts.createdAt))
+      .limit(1);
+    if (duplicatePost.length > 0) {
+      return duplicatePost[0];
+    }
+
     const rawSlug = input.slug?.trim() ?? '';
     const finalSlug =
       rawSlug.length > 0 ? rawSlug.slice(0, 256) : slugFromText(input.title, 256, 'post');
@@ -342,10 +381,6 @@ const postRouter = router({
       throw new TRPCError({ code: 'CONFLICT', message: 'Slug already exists.' });
     }
 
-    if (!ctx.user) {
-      throw new TRPCError({ code: 'UNAUTHORIZED' });
-    }
-    const userId = ctx.user.id;
     const now = new Date();
     const { resolvedTagIds, pendingTagSlugs } = await resolveTagInputs({
       db: ctx.db,
@@ -355,19 +390,41 @@ const postRouter = router({
       isAdmin,
     });
 
-    const [created] = await ctx.db
+    const inserted = await ctx.db
       .insert(posts)
       .values({
         authorId: userId,
         title: input.title,
         slug: finalSlug,
+        idempotencyKey: input.idempotencyKey,
         excerpt: input.excerpt,
         content: input.content,
         pendingTagSlugs: pendingTagSlugs.length > 0 ? pendingTagSlugs : null,
         status: isAdmin ? 'published' : 'pending',
         publishedAt: isAdmin ? now : null,
       })
+      .onConflictDoNothing({
+        target: [posts.authorId, posts.idempotencyKey],
+      })
       .returning();
+
+    const created = inserted[0];
+    if (!created) {
+      const [existingPost] = await ctx.db
+        .select()
+        .from(posts)
+        .where(
+          and(
+            eq(posts.authorId, userId),
+            eq(posts.idempotencyKey, input.idempotencyKey)
+          )
+        )
+        .limit(1);
+      if (existingPost) {
+        return existingPost;
+      }
+      throw new TRPCError({ code: 'CONFLICT', message: 'Duplicate submission detected.' });
+    }
 
     if (resolvedTagIds.length > 0) {
       await ctx.db.insert(postTags).values(
@@ -404,6 +461,22 @@ const postRouter = router({
       const isAdmin = ctx.profile?.role === 'admin';
       if (!isAdmin && existing[0].authorId !== ctx.user.id) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Not your post.' });
+      }
+
+      if (!isAdmin) {
+        const existingRevisionByKey = await ctx.db
+          .select()
+          .from(postRevisions)
+          .where(
+            and(
+              eq(postRevisions.authorId, userId),
+              eq(postRevisions.idempotencyKey, input.idempotencyKey)
+            )
+          )
+          .limit(1);
+        if (existingRevisionByKey.length > 0) {
+          return existingRevisionByKey[0];
+        }
       }
 
       if (isAdmin) {
@@ -449,11 +522,39 @@ const postRouter = router({
         })).resolvedTagIds;
       }
 
-      const [revision] = await ctx.db
+      const dedupeSince = new Date(Date.now() - 10 * 60 * 1000);
+      const duplicateRevision = await ctx.db
+        .select()
+        .from(postRevisions)
+        .where(
+          and(
+            eq(postRevisions.authorId, userId),
+            eq(postRevisions.postId, input.postId),
+            eq(postRevisions.status, 'pending'),
+            gte(postRevisions.createdAt, dedupeSince),
+            sql`coalesce(${postRevisions.title}, '') = ${input.title ?? ''}`,
+            sql`coalesce(${postRevisions.excerpt}, '') = ${input.excerpt ?? ''}`,
+            sql`coalesce(${postRevisions.content}, '') = ${input.content ?? ''}`,
+            sql`coalesce(${postRevisions.tagNames}, 'null'::jsonb) = ${JSON.stringify(
+              input.tagNames ?? null
+            )}::jsonb`,
+            sql`coalesce(${postRevisions.tagIds}, 'null'::jsonb) = ${JSON.stringify(
+              resolvedTagIds ?? null
+            )}::jsonb`
+          )
+        )
+        .orderBy(desc(postRevisions.createdAt))
+        .limit(1);
+      if (duplicateRevision.length > 0) {
+        return duplicateRevision[0];
+      }
+
+      const inserted = await ctx.db
         .insert(postRevisions)
         .values({
           postId: input.postId,
           authorId: userId,
+          idempotencyKey: input.idempotencyKey,
           title: input.title,
           excerpt: input.excerpt,
           content: input.content,
@@ -461,7 +562,28 @@ const postRouter = router({
           tagNames: input.tagNames ?? undefined,
           status: 'pending',
         })
+        .onConflictDoNothing({
+          target: [postRevisions.authorId, postRevisions.idempotencyKey],
+        })
         .returning();
+
+      const revision = inserted[0];
+      if (!revision) {
+        const [existingRevision] = await ctx.db
+          .select()
+          .from(postRevisions)
+          .where(
+            and(
+              eq(postRevisions.authorId, userId),
+              eq(postRevisions.idempotencyKey, input.idempotencyKey)
+            )
+          )
+          .limit(1);
+        if (existingRevision) {
+          return existingRevision;
+        }
+        throw new TRPCError({ code: 'CONFLICT', message: 'Duplicate update detected.' });
+      }
 
       return revision;
     }),
@@ -472,6 +594,42 @@ const commentRouter = router({
     .input(commentInput)
     .mutation(async ({ ctx, input }) => {
       const isAdmin = ctx.profile?.role === 'admin';
+
+      const existingByKey = await ctx.db
+        .select()
+        .from(comments)
+        .where(
+          and(
+            eq(comments.authorId, ctx.user.id),
+            eq(comments.idempotencyKey, input.idempotencyKey)
+          )
+        )
+        .limit(1);
+      if (existingByKey.length > 0) {
+        return existingByKey[0];
+      }
+
+      const dedupeSince = new Date(Date.now() - 5 * 60 * 1000);
+      const duplicateComment = await ctx.db
+        .select()
+        .from(comments)
+        .where(
+          and(
+            eq(comments.authorId, ctx.user.id),
+            eq(comments.postId, input.postId),
+            eq(comments.body, input.body),
+            input.parentId
+              ? eq(comments.parentId, input.parentId)
+              : isNull(comments.parentId),
+            gte(comments.createdAt, dedupeSince)
+          )
+        )
+        .orderBy(desc(comments.createdAt))
+        .limit(1);
+      if (duplicateComment.length > 0) {
+        return duplicateComment[0];
+      }
+
       const post = await ctx.db
         .select({ id: posts.id, status: posts.status })
         .from(posts)
@@ -511,17 +669,39 @@ const commentRouter = router({
       }
 
       const now = new Date();
-      const [created] = await ctx.db
+      const inserted = await ctx.db
         .insert(comments)
         .values({
           postId: input.postId,
           authorId: ctx.user.id,
+          idempotencyKey: input.idempotencyKey,
           body: input.body,
           parentId: input.parentId ?? null,
           status: isAdmin ? 'approved' : 'pending',
           approvedAt: isAdmin ? now : null,
         })
+        .onConflictDoNothing({
+          target: [comments.authorId, comments.idempotencyKey],
+        })
         .returning();
+
+      const created = inserted[0];
+      if (!created) {
+        const [existingComment] = await ctx.db
+          .select()
+          .from(comments)
+          .where(
+            and(
+              eq(comments.authorId, ctx.user.id),
+              eq(comments.idempotencyKey, input.idempotencyKey)
+            )
+          )
+          .limit(1);
+        if (existingComment) {
+          return existingComment;
+        }
+        throw new TRPCError({ code: 'CONFLICT', message: 'Duplicate comment detected.' });
+      }
 
       return created;
     }),
@@ -543,6 +723,22 @@ const commentRouter = router({
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Not your comment.' });
       }
 
+      if (!isAdmin) {
+        const existingRevisionByKey = await ctx.db
+          .select()
+          .from(commentRevisions)
+          .where(
+            and(
+              eq(commentRevisions.authorId, ctx.user.id),
+              eq(commentRevisions.idempotencyKey, input.idempotencyKey)
+            )
+          )
+          .limit(1);
+        if (existingRevisionByKey.length > 0) {
+          return existingRevisionByKey[0];
+        }
+      }
+
       if (isAdmin) {
         await ctx.db
           .update(comments)
@@ -551,15 +747,56 @@ const commentRouter = router({
         return { status: 'applied' };
       }
 
-      const [revision] = await ctx.db
+      const dedupeSince = new Date(Date.now() - 10 * 60 * 1000);
+      const duplicateRevision = await ctx.db
+        .select()
+        .from(commentRevisions)
+        .where(
+          and(
+            eq(commentRevisions.authorId, ctx.user.id),
+            eq(commentRevisions.commentId, input.commentId),
+            eq(commentRevisions.status, 'pending'),
+            eq(commentRevisions.body, input.body),
+            gte(commentRevisions.createdAt, dedupeSince)
+          )
+        )
+        .orderBy(desc(commentRevisions.createdAt))
+        .limit(1);
+      if (duplicateRevision.length > 0) {
+        return duplicateRevision[0];
+      }
+
+      const inserted = await ctx.db
         .insert(commentRevisions)
         .values({
           commentId: input.commentId,
           authorId: ctx.user.id,
+          idempotencyKey: input.idempotencyKey,
           body: input.body,
           status: 'pending',
         })
+        .onConflictDoNothing({
+          target: [commentRevisions.authorId, commentRevisions.idempotencyKey],
+        })
         .returning();
+
+      const revision = inserted[0];
+      if (!revision) {
+        const [existingRevision] = await ctx.db
+          .select()
+          .from(commentRevisions)
+          .where(
+            and(
+              eq(commentRevisions.authorId, ctx.user.id),
+              eq(commentRevisions.idempotencyKey, input.idempotencyKey)
+            )
+          )
+          .limit(1);
+        if (existingRevision) {
+          return existingRevision;
+        }
+        throw new TRPCError({ code: 'CONFLICT', message: 'Duplicate edit detected.' });
+      }
 
       return revision;
     }),
@@ -576,13 +813,31 @@ const tagRouter = router({
       const rawSlug = input.slug?.trim() ?? '';
       const finalSlug =
         rawSlug.length > 0 ? rawSlug.slice(0, 64) : slugFromTagName(input.name);
+
+      const existingByKey = await ctx.db
+        .select()
+        .from(tagRequests)
+        .where(
+          and(
+            eq(tagRequests.requestedBy, ctx.user.id),
+            eq(tagRequests.idempotencyKey, input.idempotencyKey)
+          )
+        )
+        .limit(1);
+      if (existingByKey.length > 0) {
+        return existingByKey[0];
+      }
+
       const existingTag = await ctx.db
-        .select({ id: tags.id })
+        .select()
         .from(tags)
         .where(eq(tags.slug, finalSlug))
         .limit(1);
 
       if (existingTag.length > 0) {
+        if (isAdmin) {
+          return existingTag[0];
+        }
         throw new TRPCError({ code: 'CONFLICT', message: 'Tag already exists.' });
       }
 
@@ -600,24 +855,61 @@ const tagRouter = router({
       }
 
       const existingRequest = await ctx.db
+        .select()
+        .from(tagRequests)
+        .where(
+          and(
+            eq(tagRequests.slug, finalSlug),
+            eq(tagRequests.status, 'pending'),
+            eq(tagRequests.requestedBy, ctx.user.id)
+          )
+        )
+        .limit(1);
+
+      if (existingRequest.length > 0) {
+        return existingRequest[0];
+      }
+
+      const pendingOther = await ctx.db
         .select({ id: tagRequests.id })
         .from(tagRequests)
         .where(and(eq(tagRequests.slug, finalSlug), eq(tagRequests.status, 'pending')))
         .limit(1);
-
-      if (existingRequest.length > 0) {
+      if (pendingOther.length > 0) {
         throw new TRPCError({ code: 'CONFLICT', message: 'Tag request already pending.' });
       }
 
-      const [created] = await ctx.db
+      const inserted = await ctx.db
         .insert(tagRequests)
         .values({
           name: input.name,
           slug: finalSlug,
           requestedBy: ctx.user.id,
           status: 'pending',
+          idempotencyKey: input.idempotencyKey,
+        })
+        .onConflictDoNothing({
+          target: [tagRequests.requestedBy, tagRequests.idempotencyKey],
         })
         .returning();
+
+      const created = inserted[0];
+      if (!created) {
+        const [existingRequest] = await ctx.db
+          .select()
+          .from(tagRequests)
+          .where(
+            and(
+              eq(tagRequests.requestedBy, ctx.user.id),
+              eq(tagRequests.idempotencyKey, input.idempotencyKey)
+            )
+          )
+          .limit(1);
+        if (existingRequest) {
+          return existingRequest;
+        }
+        throw new TRPCError({ code: 'CONFLICT', message: 'Duplicate request detected.' });
+      }
 
       return created;
     }),
@@ -674,16 +966,72 @@ const tagRouter = router({
         return updated;
       }
 
-      const [revision] = await ctx.db
+      const existingRevisionByKey = await ctx.db
+        .select()
+        .from(tagRevisions)
+        .where(
+          and(
+            eq(tagRevisions.authorId, ctx.user.id),
+            eq(tagRevisions.idempotencyKey, input.idempotencyKey)
+          )
+        )
+        .limit(1);
+      if (existingRevisionByKey.length > 0) {
+        return existingRevisionByKey[0];
+      }
+
+      const dedupeSince = new Date(Date.now() - 10 * 60 * 1000);
+      const duplicateRevision = await ctx.db
+        .select()
+        .from(tagRevisions)
+        .where(
+          and(
+            eq(tagRevisions.authorId, ctx.user.id),
+            eq(tagRevisions.tagId, existingTag.id),
+            eq(tagRevisions.status, 'pending'),
+            eq(tagRevisions.name, nextName),
+            eq(tagRevisions.slug, nextSlug),
+            gte(tagRevisions.createdAt, dedupeSince)
+          )
+        )
+        .orderBy(desc(tagRevisions.createdAt))
+        .limit(1);
+      if (duplicateRevision.length > 0) {
+        return duplicateRevision[0];
+      }
+
+      const inserted = await ctx.db
         .insert(tagRevisions)
         .values({
           tagId: existingTag.id,
           authorId: ctx.user.id,
+          idempotencyKey: input.idempotencyKey,
           name: nextName,
           slug: nextSlug,
           status: 'pending',
         })
+        .onConflictDoNothing({
+          target: [tagRevisions.authorId, tagRevisions.idempotencyKey],
+        })
         .returning();
+
+      const revision = inserted[0];
+      if (!revision) {
+        const [existingRevision] = await ctx.db
+          .select()
+          .from(tagRevisions)
+          .where(
+            and(
+              eq(tagRevisions.authorId, ctx.user.id),
+              eq(tagRevisions.idempotencyKey, input.idempotencyKey)
+            )
+          )
+          .limit(1);
+        if (existingRevision) {
+          return existingRevision;
+        }
+        throw new TRPCError({ code: 'CONFLICT', message: 'Duplicate request detected.' });
+      }
 
       return revision;
     }),

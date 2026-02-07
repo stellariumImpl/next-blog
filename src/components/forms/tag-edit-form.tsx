@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useFormState } from 'react-dom';
 import { Save } from 'lucide-react';
+import { createIdempotencyKey } from '@/lib/idempotency';
 
 export type TagEditState = {
   ok: boolean;
@@ -23,11 +24,18 @@ export default function TagEditForm({
   const [state, formAction] = useFormState(action, { ok: false, message: '' });
   const [name, setName] = useState(initialName);
   const [slug, setSlug] = useState(initialSlug);
+  const [idempotencyKey, setIdempotencyKey] = useState(createIdempotencyKey());
 
   useEffect(() => {
     setName(initialName);
     setSlug(initialSlug);
   }, [initialName, initialSlug]);
+
+  useEffect(() => {
+    if (state.ok) {
+      setIdempotencyKey(createIdempotencyKey());
+    }
+  }, [state.ok]);
 
   const helper = isAdmin
     ? 'Changes apply immediately.'
@@ -35,6 +43,7 @@ export default function TagEditForm({
 
   return (
     <form action={formAction} className="space-y-4">
+      <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
       <div className="text-xs uppercase tracking-[0.3em] app-muted">Edit tag</div>
       <p className="text-sm app-muted-strong">{helper}</p>
       <div className="space-y-2">

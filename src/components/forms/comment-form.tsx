@@ -4,6 +4,7 @@ import { useEffect, useState, type RefObject } from 'react';
 import { useFormState } from 'react-dom';
 import { Send } from 'lucide-react';
 import { useUIStore } from '@/store/ui';
+import { createIdempotencyKey } from '@/lib/idempotency';
 
 export type CommentState = {
   ok: boolean;
@@ -43,6 +44,7 @@ export default function CommentForm({
   const body = isControlled ? draft : localBody;
   const setBody = isControlled ? onDraftChange : setLocalBody;
   const flashSystemMsg = useUIStore((state) => state.flashSystemMsg);
+  const [idempotencyKey, setIdempotencyKey] = useState(createIdempotencyKey());
 
   useEffect(() => {
     if (!isControlled && typeof draft === 'string') {
@@ -57,6 +59,12 @@ export default function CommentForm({
     }
     onSubmitted?.();
   }, [isControlled, onSubmitted, state.ok]);
+
+  useEffect(() => {
+    if (state.ok) {
+      setIdempotencyKey(createIdempotencyKey());
+    }
+  }, [state.ok]);
 
   const formSpacing = compact ? 'space-y-3' : 'space-y-4';
   const textareaHeight = compact ? 'min-h-[96px]' : 'min-h-[140px]';
@@ -76,6 +84,7 @@ export default function CommentForm({
       }}
     >
       {parentId && <input type="hidden" name="parentId" value={parentId} />}
+      <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
       <label className="text-xs uppercase tracking-[0.3em] app-muted">
         {label}
       </label>

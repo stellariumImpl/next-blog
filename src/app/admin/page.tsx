@@ -21,8 +21,39 @@ import TimeStamp from '@/components/ui/time-stamp';
 import { Inbox, Shield } from 'lucide-react';
 import Link from 'next/link';
 
-export default async function AdminHome() {
+export default async function AdminHome({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined>;
+}) {
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const sessionPageSize = 20;
+  const sessionPageParam = Array.isArray(searchParams?.sessionsPage)
+    ? searchParams?.sessionsPage[0]
+    : searchParams?.sessionsPage;
+  const sessionPage = Math.max(
+    1,
+    Number.parseInt(sessionPageParam ?? '1', 10) || 1
+  );
+  const sessionOffset = (sessionPage - 1) * sessionPageSize;
+  const baseSessionParams = new URLSearchParams();
+  if (searchParams) {
+    for (const [key, value] of Object.entries(searchParams)) {
+      if (typeof value === 'string') {
+        baseSessionParams.set(key, value);
+      }
+    }
+  }
+  const buildSessionsUrl = (page: number) => {
+    const params = new URLSearchParams(baseSessionParams);
+    if (page <= 1) {
+      params.delete('sessionsPage');
+    } else {
+      params.set('sessionsPage', String(page));
+    }
+    const query = params.toString();
+    return query ? `/admin?${query}` : '/admin';
+  };
   const [pendingPosts] = await db
     .select({ count: sql<number>`count(*)`.mapWith(Number) })
     .from(posts)
@@ -97,6 +128,7 @@ export default async function AdminHome() {
     entryPath: string | null;
     exitPath: string | null;
   }> = [];
+  let recentSessionsTotal = 0;
 
   try {
     const [pageviews] = await db
@@ -285,7 +317,7 @@ export default async function AdminHome() {
       WHERE s.started_at >= ${since}
       GROUP BY s.id
       ORDER BY s.last_seen_at DESC
-      LIMIT 50;
+      LIMIT ${sessionPageSize} OFFSET ${sessionOffset};
     `);
 
     stats = {
@@ -311,6 +343,7 @@ export default async function AdminHome() {
         transitions: Number(row.transitions ?? 0),
       })),
     };
+    recentSessionsTotal = sessions?.count ?? 0;
     const summaryRow = featureRows.rows?.[0] as
       | {
           post_count?: number;
@@ -357,6 +390,12 @@ export default async function AdminHome() {
     const rem = secs % 60;
     return `${mins}m ${rem}s`;
   };
+  const totalSessionPages = Math.max(
+    1,
+    Math.ceil(recentSessionsTotal / sessionPageSize)
+  );
+  const canPrevSessions = sessionPage > 1;
+  const canNextSessions = sessionPage < totalSessionPages;
 
   const now = new Date();
   const defaultTo = now.toISOString().slice(0, 10);
@@ -711,7 +750,7 @@ export default async function AdminHome() {
               Recent Sessions (Last 30 Days)
             </div>
             <div className="text-[10px] uppercase tracking-[0.3em] text-zinc-500 break-all">
-              Showing {recentSessions.length} sessions
+              Showing {recentSessions.length} of {recentSessionsTotal} sessions
             </div>
           </div>
           {recentSessions.length === 0 ? (
@@ -774,6 +813,37 @@ export default async function AdminHome() {
                     </div>
                   );
                 })}
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-800/60 px-4 py-3 text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+                <span>
+                  Page {sessionPage} of {totalSessionPages}
+                </span>
+                <div className="flex items-center gap-2">
+                  {canPrevSessions ? (
+                    <Link
+                      href={buildSessionsUrl(sessionPage - 1)}
+                      className="border border-zinc-700 px-2 py-1 text-zinc-300 hover:border-[#00ff41] hover:text-[#00ff41] transition"
+                    >
+                      Prev
+                    </Link>
+                  ) : (
+                    <span className="border border-zinc-800 px-2 py-1 text-zinc-600">
+                      Prev
+                    </span>
+                  )}
+                  {canNextSessions ? (
+                    <Link
+                      href={buildSessionsUrl(sessionPage + 1)}
+                      className="border border-zinc-700 px-2 py-1 text-zinc-300 hover:border-[#00ff41] hover:text-[#00ff41] transition"
+                    >
+                      Next
+                    </Link>
+                  ) : (
+                    <span className="border border-zinc-800 px-2 py-1 text-zinc-600">
+                      Next
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           )}

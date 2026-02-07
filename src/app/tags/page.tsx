@@ -23,16 +23,21 @@ async function createTagRequestAction(
 
   const name = (formData.get('name') as string | null)?.trim() ?? '';
   const rawSlug = (formData.get('slug') as string | null)?.trim() ?? '';
+  const idempotencyKey =
+    (formData.get('idempotencyKey') as string | null)?.trim() ?? '';
 
   if (!name) {
     return { ok: false, message: 'Tag name is required.' };
+  }
+  if (!idempotencyKey) {
+    return { ok: false, message: 'Missing submission key.' };
   }
 
   const slug = rawSlug || name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
 
   try {
     const caller = await getCaller();
-    const created = await caller.tags.requestNew({ name, slug });
+    const created = await caller.tags.requestNew({ name, slug, idempotencyKey });
     const message =
       created && 'status' in created
         ? 'Tag request submitted for review.'

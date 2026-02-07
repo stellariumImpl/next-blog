@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFormState } from 'react-dom';
 import { Send } from 'lucide-react';
 import { useUIStore } from '@/store/ui';
+import { createIdempotencyKey } from '@/lib/idempotency';
 
 export type TagRequestState = {
   ok: boolean;
@@ -23,10 +24,12 @@ export default function TagRequestForm({
   const formRef = useRef<HTMLFormElement | null>(null);
   const buttonLabel = isAdmin ? 'Create Tag' : 'Submit Tag Request';
   const flashSystemMsg = useUIStore((state) => state.flashSystemMsg);
+  const [idempotencyKey, setIdempotencyKey] = useState(createIdempotencyKey());
 
   useEffect(() => {
     if (state.ok) {
       formRef.current?.reset();
+      setIdempotencyKey(createIdempotencyKey());
     }
   }, [state.ok]);
 
@@ -47,6 +50,7 @@ export default function TagRequestForm({
         }
       }}
     >
+      <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
       <input
         name="name"
         disabled={disabled}
