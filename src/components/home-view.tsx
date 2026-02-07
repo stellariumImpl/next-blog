@@ -586,19 +586,19 @@ export default function HomeView({
           >
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <span>Archive Range</span>
-              <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:w-auto sm:grid-cols-[auto_auto_auto]">
+              <div className="flex w-full items-center gap-2 sm:w-auto sm:grid-cols-[auto_auto_auto]">
                 <input
                   type="date"
                   value={dateFrom}
                   onChange={(event) => handleFromChange(event.target.value)}
-                  className="w-full min-w-0 border app-border bg-transparent px-2 py-1 text-[9px] sm:text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none sm:w-auto"
+                  className="min-w-0 flex-1 border app-border bg-transparent px-2 py-1 text-[9px] sm:text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none sm:w-auto"
                 />
-                <span className="text-[10px] app-muted text-center">→</span>
+                <span className="shrink-0 text-[10px] app-muted text-center">→</span>
                 <input
                   type="date"
                   value={dateTo}
                   onChange={(event) => handleToChange(event.target.value)}
-                  className="w-full min-w-0 border app-border bg-transparent px-2 py-1 text-[9px] sm:text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none sm:w-auto"
+                  className="min-w-0 flex-1 border app-border bg-transparent px-2 py-1 text-[9px] sm:text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none sm:w-auto"
                 />
               </div>
               <div className="grid w-full grid-cols-[repeat(4,minmax(0,1fr))] gap-2 sm:w-auto sm:grid-cols-[auto_auto_auto_auto]">
