@@ -2,6 +2,10 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import {
+  sendAnalyticsEvent,
+  setAnalyticsContext,
+} from "@/lib/analytics-client";
 
 const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const MAX_DURATION_MS = 6 * 60 * 60 * 1000; // 6 hours
@@ -51,21 +55,11 @@ const getSessionId = () => {
   return sessionId;
 };
 
-const sendEvent = (event: Record<string, unknown>) => {
-  const body = JSON.stringify({ events: [event] });
-  if (typeof navigator !== "undefined" && "sendBeacon" in navigator) {
-    const ok = navigator.sendBeacon(
-      "/api/analytics",
-      new Blob([body], { type: "application/json" })
-    );
-    if (ok) return;
-  }
-  void fetch("/api/analytics", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body,
-    keepalive: true,
-  }).catch(() => undefined);
+const safeLabel = (value: string | null) => {
+  if (!value) return null;
+  const trimmed = value.trim().replace(/\s+/g, " ");
+  if (!trimmed) return null;
+  return trimmed.slice(0, 140);
 };
 
 export default function AnalyticsTracker() {
@@ -93,12 +87,50 @@ export default function AnalyticsTracker() {
       Math.max(Math.round(safeNow() - current.startTime), 0),
       MAX_DURATION_MS
     );
-    sendEvent({
+    sendAnalyticsEvent({
       type: "page_duration",
       sessionId: current.sessionId,
       pageId: current.pageId,
       path: current.path,
       durationMs,
+    });
+  };
+
+  const emitClick = (target: HTMLElement) => {
+    const current = pageRef.current;
+    if (!current) return;
+    if (target.closest("[data-analytics='false']")) return;
+    const clickable =
+      target.closest("a,button,[data-analytics-label]") ?? target;
+    if (!clickable) return;
+    if (
+      clickable instanceof HTMLInputElement ||
+      clickable instanceof HTMLTextAreaElement ||
+      clickable instanceof HTMLSelectElement
+    ) {
+      return;
+    }
+    if (clickable.isContentEditable) return;
+
+    const labelAttr =
+      clickable.getAttribute("data-analytics-label") ||
+      clickable.getAttribute("aria-label");
+    const text = clickable.textContent ?? "";
+    const label = safeLabel(labelAttr ?? text);
+    if (!label) return;
+
+    const href =
+      clickable instanceof HTMLAnchorElement ? clickable.href : null;
+    const targetTag = clickable.tagName.toLowerCase();
+
+    sendAnalyticsEvent({
+      type: "click",
+      sessionId: current.sessionId,
+      pageId: current.pageId,
+      path: current.path,
+      label,
+      target: targetTag,
+      href,
     });
   };
 
@@ -123,8 +155,9 @@ export default function AnalyticsTracker() {
       startTime: safeNow(),
       sentEnd: false,
     };
+    setAnalyticsContext({ sessionId, pageId, path });
 
-    sendEvent({
+    sendAnalyticsEvent({
       type: "page_view",
       sessionId,
       pageId,
@@ -155,6 +188,19 @@ export default function AnalyticsTracker() {
       window.removeEventListener("pagehide", handlePageHide);
     };
   }, []);
+
+  useEffect(() => {
+    if (!pathname || pathname.startsWith("/admin")) return;
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      emitClick(target);
+    };
+    document.addEventListener("click", handleClick, true);
+    return () => {
+      document.removeEventListener("click", handleClick, true);
+    };
+  }, [pathname]);
 
   return null;
 }

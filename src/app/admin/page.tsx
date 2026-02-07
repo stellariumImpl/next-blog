@@ -2,15 +2,20 @@ import { and, desc, eq, gt, isNotNull, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import {
   analyticsPageviews,
+  analyticsEvents,
+  analyticsFeatureVectors,
   analyticsSessions,
   comments,
   commentRevisions,
   postRevisions,
   posts,
+  postTags,
+  tags,
   tagRequests,
   tagRevisions,
 } from '@/db/schema';
 import EmptyState from '@/components/ui/empty-state';
+import DropdownSelect from '@/components/ui/dropdown-select';
 import TimeStamp from '@/components/ui/time-stamp';
 import { Inbox, Shield } from 'lucide-react';
 import Link from 'next/link';
@@ -64,7 +69,18 @@ export default async function AdminHome() {
     avgDurationMs: 0,
     bounceRate: 0,
     topPages: [] as { path: string; views: number }[],
+    topHeat: [] as { path: string; totalDuration: number }[],
+    tagHeat: [] as { name: string; slug: string; totalDuration: number }[],
+    searchHeat: [] as { label: string; searches: number }[],
+    topTransitions: [] as { source: string; target: string; transitions: number }[],
   };
+  let featureSummary: {
+    postCount: number;
+    tagCount: number;
+    updatedAt: Date | string | null;
+    sourceFrom: Date | string | null;
+    sourceTo: Date | string | null;
+  } | null = null;
   let recentSessions: Array<{
     id: string;
     ipHash: string;
@@ -152,6 +168,78 @@ export default async function AdminHome() {
       .orderBy(desc(sql`count(*)`))
       .limit(5);
 
+    const topHeat = await db
+      .select({
+        path: analyticsPageviews.path,
+        totalDuration: sql<number>`sum(${analyticsPageviews.durationMs})`.mapWith(Number),
+      })
+      .from(analyticsPageviews)
+      .where(
+        and(
+          gt(analyticsPageviews.startedAt, since),
+          isNotNull(analyticsPageviews.durationMs)
+        )
+      )
+      .groupBy(analyticsPageviews.path)
+      .orderBy(desc(sql`sum(${analyticsPageviews.durationMs})`))
+      .limit(5);
+
+    const tagHeatRows = await db.execute(sql`
+      SELECT t.name, t.slug, COALESCE(SUM(pv.duration_ms), 0)::int AS total_duration
+      FROM ${analyticsPageviews} pv
+      JOIN ${posts} p
+        ON p.slug = split_part(split_part(pv.path, '?', 1), '/posts/', 2)
+      JOIN ${postTags} pt ON pt.post_id = p.id
+      JOIN ${tags} t ON t.id = pt.tag_id
+      WHERE pv.started_at >= ${since}
+        AND pv.duration_ms IS NOT NULL
+        AND pv.path LIKE '/posts/%'
+      GROUP BY t.id
+      ORDER BY total_duration DESC
+      LIMIT 5;
+    `);
+
+    const searchHeatRows = await db.execute(sql`
+      SELECT label, COUNT(*)::int AS searches
+      FROM ${analyticsEvents}
+      WHERE created_at >= ${since}
+        AND event_type = 'SEARCH'
+        AND label IS NOT NULL
+      GROUP BY label
+      ORDER BY searches DESC
+      LIMIT 8;
+    `);
+
+    const transitionRows = await db.execute(sql`
+      WITH ordered AS (
+        SELECT
+          session_id,
+          path,
+          LEAD(path) OVER (PARTITION BY session_id ORDER BY started_at) AS next_path
+        FROM ${analyticsPageviews}
+        WHERE started_at >= ${since}
+      )
+      SELECT
+        path AS source,
+        next_path AS target,
+        COUNT(*)::int AS transitions
+      FROM ordered
+      WHERE next_path IS NOT NULL
+      GROUP BY source, target
+      ORDER BY transitions DESC
+      LIMIT 8;
+    `);
+
+    const featureRows = await db.execute(sql`
+      SELECT
+        COUNT(*) FILTER (WHERE entity_type = 'post')::int AS post_count,
+        COUNT(*) FILTER (WHERE entity_type = 'tag')::int AS tag_count,
+        MAX(updated_at) AS updated_at,
+        MIN(source_from) AS source_from,
+        MAX(source_to) AS source_to
+      FROM ${analyticsFeatureVectors};
+    `);
+
     const sessionRows = await db.execute(sql`
       SELECT
         s.id,
@@ -194,7 +282,40 @@ export default async function AdminHome() {
       avgDurationMs: avgDuration?.avg ?? 0,
       bounceRate,
       topPages,
+      topHeat,
+      tagHeat: (tagHeatRows.rows ?? []).map((row) => ({
+        name: String(row.name ?? ''),
+        slug: String(row.slug ?? ''),
+        totalDuration: Number(row.total_duration ?? 0),
+      })),
+      searchHeat: (searchHeatRows.rows ?? []).map((row) => ({
+        label: String(row.label ?? ''),
+        searches: Number(row.searches ?? 0),
+      })),
+      topTransitions: (transitionRows.rows ?? []).map((row) => ({
+        source: String(row.source ?? ''),
+        target: String(row.target ?? ''),
+        transitions: Number(row.transitions ?? 0),
+      })),
     };
+    const summaryRow = featureRows.rows?.[0] as
+      | {
+          post_count?: number;
+          tag_count?: number;
+          updated_at?: Date | string | null;
+          source_from?: Date | string | null;
+          source_to?: Date | string | null;
+        }
+      | undefined;
+    if (summaryRow) {
+      featureSummary = {
+        postCount: Number(summaryRow.post_count ?? 0),
+        tagCount: Number(summaryRow.tag_count ?? 0),
+        updatedAt: summaryRow.updated_at ?? null,
+        sourceFrom: summaryRow.source_from ?? null,
+        sourceTo: summaryRow.source_to ?? null,
+      };
+    }
     recentSessions = (sessionRows.rows ?? []).map((row) => ({
       id: String(row.id),
       ipHash: String(row.ip_hash ?? ''),
@@ -223,6 +344,14 @@ export default async function AdminHome() {
     const rem = secs % 60;
     return `${mins}m ${rem}s`;
   };
+
+  const now = new Date();
+  const defaultTo = now.toISOString().slice(0, 10);
+  const defaultFrom = new Date(
+    now.getTime() - 30 * 24 * 60 * 60 * 1000
+  )
+    .toISOString()
+    .slice(0, 10);
 
   return (
     <div className="space-y-8">
@@ -276,25 +405,170 @@ export default async function AdminHome() {
         )}
 
         {!analyticsError && (
-          <div className="border border-zinc-800 rounded p-4 bg-zinc-900/40">
-            <div className="text-xs uppercase text-zinc-500">Top Pages</div>
-            {stats.topPages.length === 0 ? (
-              <div className="mt-3 text-sm text-zinc-500">
-                No traffic recorded yet.
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+            <div className="border border-zinc-800 rounded p-4 bg-zinc-900/40 space-y-4">
+              <div className="text-xs uppercase text-zinc-500">
+                Search Heat (Top Queries)
               </div>
-            ) : (
-              <div className="mt-3 space-y-2 text-sm">
-                {stats.topPages.map((page) => (
-                  <div
-                    key={page.path}
-                    className="flex items-center justify-between border-b border-zinc-800/60 pb-2"
-                  >
-                    <span className="truncate pr-4">{page.path}</span>
-                    <span className="text-zinc-400">{page.views}</span>
+              {stats.searchHeat.length === 0 ? (
+                <div className="text-sm text-zinc-500">
+                  No search events yet.
+                </div>
+              ) : (
+                <div className="space-y-2 text-sm">
+                  {stats.searchHeat.map((row, index) => (
+                    <div
+                      key={`${row.label}-${index}`}
+                      className="flex items-center justify-between border-b border-zinc-800/60 pb-2"
+                    >
+                      <span className="truncate pr-4">{row.label}</span>
+                      <span className="text-zinc-400">{row.searches}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="border border-zinc-800 rounded p-4 bg-zinc-900/40 space-y-4">
+              <div className="text-xs uppercase text-zinc-500">
+                Top Path Transitions (Sankey)
+              </div>
+              {stats.topTransitions.length === 0 ? (
+                <div className="text-sm text-zinc-500">
+                  No transitions recorded yet.
+                </div>
+              ) : (
+                <div className="space-y-2 text-sm">
+                  {stats.topTransitions.map((row, index) => (
+                    <div
+                      key={`${row.source}-${row.target}-${index}`}
+                      className="flex items-center justify-between border-b border-zinc-800/60 pb-2"
+                    >
+                      <span className="truncate pr-4">
+                        {row.source} → {row.target}
+                      </span>
+                      <span className="text-zinc-400">
+                        {row.transitions}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="border border-zinc-800 rounded p-4 bg-zinc-900/40 space-y-4">
+              <div className="text-xs uppercase text-zinc-500">
+                Recommendation Feature Vectors
+              </div>
+              {featureSummary ? (
+                <div className="space-y-3 text-sm text-zinc-400">
+                  <div className="flex items-center justify-between">
+                    <span>Post vectors</span>
+                    <span>{featureSummary.postCount}</span>
                   </div>
-                ))}
-              </div>
-            )}
+                  <div className="flex items-center justify-between">
+                    <span>Tag vectors</span>
+                    <span>{featureSummary.tagCount}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Last rebuild</span>
+                    <span>
+                      {featureSummary.updatedAt ? (
+                        <TimeStamp value={featureSummary.updatedAt} />
+                      ) : (
+                        "--"
+                      )}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-zinc-500">
+                    Source window:{" "}
+                    {featureSummary.sourceFrom ? (
+                      <TimeStamp value={featureSummary.sourceFrom} />
+                    ) : (
+                      "all time"
+                    )}{" "}
+                    →{" "}
+                    {featureSummary.sourceTo ? (
+                      <TimeStamp value={featureSummary.sourceTo} />
+                    ) : (
+                      "--"
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-zinc-500">
+                  No feature vectors generated yet.
+                </div>
+              )}
+              <form
+                action="/api/admin/analytics/rebuild-features"
+                method="POST"
+                target="_blank"
+                className="space-y-2 text-xs"
+              >
+                <DropdownSelect
+                  name="rangeDays"
+                  defaultValue=""
+                  options={[
+                    { label: "All time", value: "" },
+                    { label: "Last 30 days", value: "30" },
+                    { label: "Last 90 days", value: "90" },
+                    { label: "Last 365 days", value: "365" },
+                  ]}
+                />
+                <button
+                  type="submit"
+                  className="w-full border border-[#00ff41]/40 px-3 py-2 text-xs uppercase tracking-[0.3em] text-[#00ff41] hover:bg-[#00ff41] hover:text-black transition"
+                >
+                  Rebuild Vectors
+                </button>
+              </form>
+              <p className="text-[11px] text-zinc-500">
+                Rebuilds post/tag feature vectors for recommendations.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {!analyticsError && (
+          <div className="border border-zinc-800 rounded p-4 bg-zinc-900/40 space-y-4">
+            <div className="text-xs uppercase text-zinc-500">Export Analytics CSV</div>
+            <form
+              action="/api/admin/analytics/export"
+              method="GET"
+              className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm"
+            >
+              <DropdownSelect
+                name="type"
+                defaultValue="sessions"
+                options={[
+                  { label: "Sessions", value: "sessions" },
+                  { label: "Pageviews", value: "pageviews" },
+                  { label: "Events", value: "events" },
+                ]}
+              />
+              <input
+                type="date"
+                name="from"
+                defaultValue={defaultFrom}
+                className="border border-zinc-800 bg-transparent px-3 py-2 text-xs uppercase tracking-[0.3em] text-zinc-400 outline-none focus:border-[color:var(--accent)]"
+              />
+              <input
+                type="date"
+                name="to"
+                defaultValue={defaultTo}
+                className="border border-zinc-800 bg-transparent px-3 py-2 text-xs uppercase tracking-[0.3em] text-zinc-400 outline-none focus:border-[color:var(--accent)]"
+              />
+              <button
+                type="submit"
+                className="border border-[#00ff41]/40 px-3 py-2 text-xs uppercase tracking-[0.3em] text-[#00ff41] hover:bg-[#00ff41] hover:text-black transition"
+              >
+                Export CSV
+              </button>
+            </form>
+            <p className="text-xs text-zinc-500">
+              Exports are filtered by the date range you select.
+            </p>
           </div>
         )}
       </section>

@@ -584,49 +584,49 @@ export default function HomeView({
           <div
             className={`px-4 py-2 ${panelBg} border-b ${borderColor} text-[10px] font-bold flex flex-wrap gap-3 justify-between items-center uppercase ${mutedText} tracking-widest`}
           >
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <span>Archive Range</span>
-              <div className="flex items-center gap-2">
+              <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:w-auto sm:grid-cols-[auto_auto_auto]">
                 <input
                   type="date"
                   value={dateFrom}
                   onChange={(event) => handleFromChange(event.target.value)}
-                  className="border app-border bg-transparent px-2 py-1 text-[9px] sm:text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none w-[128px] sm:w-auto"
+                  className="w-full min-w-0 border app-border bg-transparent px-2 py-1 text-[9px] sm:text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none sm:w-auto"
                 />
-                <span className="text-[10px] app-muted">→</span>
+                <span className="text-[10px] app-muted text-center">→</span>
                 <input
                   type="date"
                   value={dateTo}
                   onChange={(event) => handleToChange(event.target.value)}
-                  className="border app-border bg-transparent px-2 py-1 text-[9px] sm:text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none w-[128px] sm:w-auto"
+                  className="w-full min-w-0 border app-border bg-transparent px-2 py-1 text-[9px] sm:text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none sm:w-auto"
                 />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="grid w-full grid-cols-[repeat(4,minmax(0,1fr))] gap-2 sm:w-auto sm:grid-cols-[auto_auto_auto_auto]">
                 <button
                   type="button"
                   onClick={() => presetRange(7)}
-                  className="border app-border px-2 py-1 text-[9px] uppercase tracking-[0.3em] hover:border-[#00ff41] transition"
+                  className="w-full min-w-0 border app-border px-2 py-1 text-[9px] uppercase tracking-[0.3em] hover:border-[#00ff41] transition"
                 >
                   7D
                 </button>
                 <button
                   type="button"
                   onClick={() => presetRange(30)}
-                  className="border app-border px-2 py-1 text-[9px] uppercase tracking-[0.3em] hover:border-[#00ff41] transition"
+                  className="w-full min-w-0 border app-border px-2 py-1 text-[9px] uppercase tracking-[0.3em] hover:border-[#00ff41] transition"
                 >
                   30D
                 </button>
                 <button
                   type="button"
                   onClick={presetYear}
-                  className="border app-border px-2 py-1 text-[9px] uppercase tracking-[0.3em] hover:border-[#00ff41] transition"
+                  className="w-full min-w-0 border app-border px-2 py-1 text-[9px] uppercase tracking-[0.3em] hover:border-[#00ff41] transition"
                 >
                   12M
                 </button>
                 <button
                   type="button"
                   onClick={clearRange}
-                  className="border app-border px-2 py-1 text-[9px] uppercase tracking-[0.3em] hover:border-[#00ff41] transition"
+                  className="w-full min-w-0 border app-border px-2 py-1 text-[9px] uppercase tracking-[0.3em] hover:border-[#00ff41] transition"
                 >
                   All
                 </button>

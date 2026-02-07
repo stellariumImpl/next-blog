@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Eye, Heart, Loader2 } from "lucide-react";
+import { trackCustomEvent } from "@/lib/analytics-client";
 
 export default function PostEngagement({
   postId,
@@ -52,6 +53,11 @@ export default function PostEngagement({
       const data = (await response.json()) as { liked: boolean; likes: number };
       setLiked(data.liked);
       setLikes(data.likes);
+      trackCustomEvent({
+        eventType: data.liked ? "POST_LIKE" : "POST_UNLIKE",
+        label: `post:${postId}`,
+        target: `likes:${data.likes}`,
+      });
     } finally {
       setSaving(false);
     }

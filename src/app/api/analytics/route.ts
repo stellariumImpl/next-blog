@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { analyticsPageviews, analyticsSessions } from "@/db/schema";
+import { analyticsEvents, analyticsPageviews, analyticsSessions } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import crypto from "crypto";
 
@@ -12,14 +12,49 @@ export const runtime = "nodejs";
 const MAX_PATH_LENGTH = 2048;
 const MAX_DURATION_MS = 6 * 60 * 60 * 1000;
 
-const eventSchema = z.object({
-  type: z.enum(["page_view", "page_duration"]),
+const pageViewSchema = z.object({
+  type: z.literal("page_view"),
   sessionId: z.string().min(6).max(128),
   pageId: z.string().min(6).max(128),
   path: z.string().min(1).max(MAX_PATH_LENGTH),
   referrer: z.string().max(MAX_PATH_LENGTH).optional().nullable(),
-  durationMs: z.number().int().nonnegative().max(MAX_DURATION_MS).optional(),
 });
+
+const pageDurationSchema = z.object({
+  type: z.literal("page_duration"),
+  sessionId: z.string().min(6).max(128),
+  pageId: z.string().min(6).max(128),
+  path: z.string().min(1).max(MAX_PATH_LENGTH),
+  durationMs: z.number().int().nonnegative().max(MAX_DURATION_MS),
+});
+
+const clickSchema = z.object({
+  type: z.literal("click"),
+  sessionId: z.string().min(6).max(128),
+  pageId: z.string().min(6).max(128),
+  path: z.string().min(1).max(MAX_PATH_LENGTH),
+  label: z.string().max(140).optional().nullable(),
+  target: z.string().max(80).optional().nullable(),
+  href: z.string().max(MAX_PATH_LENGTH).optional().nullable(),
+});
+
+const customEventSchema = z.object({
+  type: z.literal("event"),
+  sessionId: z.string().min(6).max(128),
+  pageId: z.string().min(6).max(128),
+  path: z.string().min(1).max(MAX_PATH_LENGTH),
+  eventType: z.string().min(1).max(64),
+  label: z.string().max(140).optional().nullable(),
+  target: z.string().max(80).optional().nullable(),
+  href: z.string().max(MAX_PATH_LENGTH).optional().nullable(),
+});
+
+const eventSchema = z.discriminatedUnion("type", [
+  pageViewSchema,
+  pageDurationSchema,
+  clickSchema,
+  customEventSchema,
+]);
 
 const payloadSchema = z.object({
   events: z.array(eventSchema).min(1).max(10),
@@ -142,35 +177,65 @@ export async function POST(req: Request) {
       continue;
     }
 
-    const durationMs = Math.min(
-      Math.max(event.durationMs ?? 0, 0),
-      MAX_DURATION_MS
-    );
+    if (event.type === "page_duration") {
+      const durationMs = Math.min(
+        Math.max(event.durationMs ?? 0, 0),
+        MAX_DURATION_MS
+      );
 
-    const updated = await db
-      .update(analyticsPageviews)
-      .set({ durationMs, endedAt: now })
-      .where(
-        and(
-          eq(analyticsPageviews.pageId, event.pageId),
-          eq(analyticsPageviews.sessionId, sessionId)
+      const updated = await db
+        .update(analyticsPageviews)
+        .set({ durationMs, endedAt: now })
+        .where(
+          and(
+            eq(analyticsPageviews.pageId, event.pageId),
+            eq(analyticsPageviews.sessionId, sessionId)
+          )
         )
-      )
-      .returning({ id: analyticsPageviews.id });
+        .returning({ id: analyticsPageviews.id });
 
-    if (updated.length === 0) {
-      await db
-        .insert(analyticsPageviews)
-        .values({
-          pageId: event.pageId,
-          sessionId,
-          path: event.path,
-          referrer: event.referrer ?? null,
-          startedAt: now,
-          endedAt: now,
-          durationMs,
-        })
-        .onConflictDoNothing({ target: analyticsPageviews.pageId });
+      if (updated.length === 0) {
+        await db
+          .insert(analyticsPageviews)
+          .values({
+            pageId: event.pageId,
+            sessionId,
+            path: event.path,
+            referrer: null,
+            startedAt: now,
+            endedAt: now,
+            durationMs,
+          })
+          .onConflictDoNothing({ target: analyticsPageviews.pageId });
+      }
+      continue;
+    }
+
+    if (event.type === "click") {
+      await db.insert(analyticsEvents).values({
+        sessionId,
+        pageId: event.pageId,
+        path: event.path,
+        eventType: "click",
+        label: event.label ?? null,
+        target: event.target ?? null,
+        href: event.href ?? null,
+        createdAt: now,
+      });
+      continue;
+    }
+
+    if (event.type === "event") {
+      await db.insert(analyticsEvents).values({
+        sessionId,
+        pageId: event.pageId,
+        path: event.path,
+        eventType: event.eventType,
+        label: event.label ?? null,
+        target: event.target ?? null,
+        href: event.href ?? null,
+        createdAt: now,
+      });
     }
   }
 

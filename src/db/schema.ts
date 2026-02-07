@@ -24,6 +24,7 @@ export const reviewStatusEnum = pgEnum('review_status', [
   'approved',
   'rejected',
 ]);
+export const analyticsEntityEnum = pgEnum('analytics_entity', ['post', 'tag']);
 
 export const user = pgTable(
   'user',
@@ -329,5 +330,51 @@ export const analyticsPageviews = pgTable(
     pageIdIdx: uniqueIndex('analytics_pageviews_page_id_idx').on(table.pageId),
     sessionIdx: index('analytics_pageviews_session_idx').on(table.sessionId),
     startedIdx: index('analytics_pageviews_started_idx').on(table.startedAt),
+  })
+);
+
+export const analyticsEvents = pgTable(
+  'analytics_events',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    sessionId: text('session_id').notNull(),
+    pageId: text('page_id'),
+    path: text('path').notNull(),
+    eventType: text('event_type').notNull(),
+    label: text('label'),
+    target: text('target'),
+    href: text('href'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    sessionIdx: index('analytics_events_session_idx').on(table.sessionId),
+    createdIdx: index('analytics_events_created_idx').on(table.createdAt),
+  })
+);
+
+export const analyticsFeatureVectors = pgTable(
+  'analytics_feature_vectors',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    entityType: analyticsEntityEnum('entity_type').notNull(),
+    entityId: uuid('entity_id').notNull(),
+    features: jsonb('features').$type<Record<string, unknown>>().notNull(),
+    sourceFrom: timestamp('source_from', { withTimezone: true }),
+    sourceTo: timestamp('source_to', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    entityIdx: uniqueIndex('analytics_feature_vectors_entity_idx').on(
+      table.entityType,
+      table.entityId
+    ),
+    updatedIdx: index('analytics_feature_vectors_updated_idx').on(table.updatedAt),
   })
 );

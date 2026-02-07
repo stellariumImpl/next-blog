@@ -20,6 +20,7 @@ import {
 import UserMenu, { type Viewer } from "@/components/auth/user-menu";
 import { useEffectiveTheme, useUIStore } from "@/store/ui";
 import { useFeedFilterStore } from "@/store/feed-filter";
+import { trackCustomEvent } from "@/lib/analytics-client";
 
 export default function SiteHeader({
   viewer,
@@ -88,6 +89,7 @@ export default function SiteHeader({
   const [searchResults, setSearchResults] = useState<AlgoliaHit[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const lastTrackedSearchRef = useRef<string | null>(null);
   const borderColor = isDark ? "border-zinc-800" : "border-zinc-300";
   const navBg = isDark ? "bg-black/90" : "bg-white/90";
   const navText = isDark ? "text-zinc-400" : "text-zinc-700";
@@ -234,6 +236,7 @@ export default function SiteHeader({
     setSearchQuery("");
     setSearchResults([]);
     setSearchError("");
+    lastTrackedSearchRef.current = null;
   }, [searchOpen]);
 
   useEffect(() => {
@@ -280,6 +283,17 @@ export default function SiteHeader({
         };
         const hits = results.results?.[0]?.hits ?? [];
         setSearchResults(hits);
+        if (query.length >= 2) {
+          const normalized = query.toLowerCase();
+          if (lastTrackedSearchRef.current !== normalized) {
+            lastTrackedSearchRef.current = normalized;
+            trackCustomEvent({
+              eventType: "SEARCH",
+              label: query.slice(0, 140),
+              target: `hits:${hits.length}`,
+            });
+          }
+        }
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Search unavailable.";
