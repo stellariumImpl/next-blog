@@ -22,7 +22,7 @@ export const audioPlaylist: AudioTrack[] = [
     id: "blue-shiori",
     title: "青い栞",
     artist: "Galileo Galilei",
-    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/半岛浴血-米津玄師.mp3",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/青い栞-Galileo-Galilei.mp3",
   },
   {
     id: "gou-du-zheng-xin",
