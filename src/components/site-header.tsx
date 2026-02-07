@@ -89,7 +89,7 @@ export default function SiteHeader({
   const [searchResults, setSearchResults] = useState<AlgoliaHit[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
-  const lastTrackedSearchRef = useRef<string | null>(null);
+  const lastTrackedSearchRef = useRef<{ query: string; at: number } | null>(null);
   const borderColor = isDark ? "border-zinc-800" : "border-zinc-300";
   const navBg = isDark ? "bg-black/90" : "bg-white/90";
   const navText = isDark ? "text-zinc-400" : "text-zinc-700";
@@ -283,17 +283,6 @@ export default function SiteHeader({
         };
         const hits = results.results?.[0]?.hits ?? [];
         setSearchResults(hits);
-        if (query.length >= 2) {
-          const normalized = query.toLowerCase();
-          if (lastTrackedSearchRef.current !== normalized) {
-            lastTrackedSearchRef.current = normalized;
-            trackCustomEvent({
-              eventType: "SEARCH",
-              label: query.slice(0, 140),
-              target: `hits:${hits.length}`,
-            });
-          }
-        }
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Search unavailable.";
@@ -311,6 +300,23 @@ export default function SiteHeader({
     algoliaClient,
     algoliaIndexName,
   ]);
+
+  const trackSearch = (query: string, hits: number, source: string) => {
+    const normalized = query.trim().toLowerCase();
+    if (normalized.length < 2) return;
+    const now = Date.now();
+    const last = lastTrackedSearchRef.current;
+    if (last && last.query === normalized && now - last.at < 5 * 60 * 1000) {
+      return;
+    }
+    lastTrackedSearchRef.current = { query: normalized, at: now };
+    trackCustomEvent({
+      eventType: "SEARCH",
+      label: query.slice(0, 140),
+      target: `hits:${hits}`,
+      href: source,
+    });
+  };
 
   const forceHardNav = pathname === "/submit";
   const NavLink = forceHardNav ? "a" : Link;
@@ -427,9 +433,15 @@ export default function SiteHeader({
                     ? "text-[#00ff41] placeholder:text-zinc-800"
                     : "text-[color:var(--app-text)] placeholder:text-[color:var(--text-muted)]"
                 }`}
-                onKeyDown={(event) =>
-                  event.key === "Escape" && setSearchOpen(false)
-                }
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    setSearchOpen(false);
+                  }
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    trackSearch(searchQuery, searchResults.length, "enter");
+                  }
+                }}
               />
               <div
                 className={`text-[10px] hidden md:inline ${isDark ? "text-zinc-700" : "text-[color:var(--text-muted)]"}`}
@@ -503,7 +515,10 @@ export default function SiteHeader({
                     <Link
                       key={item.id}
                       href={`/posts/${item.slug}`}
-                      onClick={() => setSearchOpen(false)}
+                      onClick={() => {
+                        trackSearch(searchQuery, searchResults.length, `result:${item.slug}`);
+                        setSearchOpen(false);
+                      }}
                       className={`group flex flex-col gap-3 p-4 cursor-pointer transition-all border ${
                         isDark
                           ? "border-transparent hover:border-[#00ff41]/20 hover:bg-[#00ff41]/10"

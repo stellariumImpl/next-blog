@@ -47,6 +47,30 @@ async function createTagRequestAction(
   }
 }
 
+async function deleteTagRequestAction(
+  prevState: TagRequestState,
+  formData: FormData
+): Promise<TagRequestState> {
+  'use server';
+
+  const requestId = (formData.get('requestId') as string | null)?.trim() ?? '';
+  if (!requestId) {
+    return { ok: false, message: 'Invalid request.' };
+  }
+
+  try {
+    const caller = await getCaller();
+    await caller.tags.deleteRequest({ requestId });
+    revalidatePath('/tags');
+    revalidatePath('/admin/tags');
+    revalidatePath('/');
+    return { ok: true, message: 'Tag request removed.' };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Delete failed.';
+    return { ok: false, message };
+  }
+}
+
 export default async function TagsPage() {
   const theme = getTheme();
   const { viewer, session } = await getViewer();
@@ -208,6 +232,15 @@ export default async function TagsPage() {
                     />
                   </div>
                   <div className="mt-1 text-xs app-muted">/{request.slug}</div>
+                  <form action={deleteTagRequestAction} className="mt-3">
+                    <input type="hidden" name="requestId" value={request.id} />
+                    <button
+                      type="submit"
+                      className="border border-[#00ff41]/40 px-3 py-1 text-[9px] uppercase tracking-[0.3em] text-[#00ff41] hover:bg-[#00ff41] hover:text-black transition"
+                    >
+                      Remove
+                    </button>
+                  </form>
                 </div>
               ))}
             </div>

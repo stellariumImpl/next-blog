@@ -8,6 +8,7 @@ import {
   varchar,
   integer,
   jsonb,
+  date,
   index,
   uniqueIndex,
   primaryKey,
@@ -352,6 +353,25 @@ export const analyticsEvents = pgTable(
   (table) => ({
     sessionIdx: index('analytics_events_session_idx').on(table.sessionId),
     createdIdx: index('analytics_events_created_idx').on(table.createdAt),
+  })
+);
+
+export const analyticsSearchRollups = pgTable(
+  'analytics_search_rollups',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    day: date('day').notNull(),
+    term: text('term').notNull(),
+    searches: integer('searches').notNull().default(0),
+    uniqueSessions: integer('unique_sessions').notNull().default(0),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
+  },
+  (table) => ({
+    dayTermIdx: uniqueIndex('analytics_search_rollups_day_term_idx').on(
+      table.day,
+      table.term
+    ),
+    dayIdx: index('analytics_search_rollups_day_idx').on(table.day),
   })
 );
 

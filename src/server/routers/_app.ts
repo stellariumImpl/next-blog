@@ -687,6 +687,64 @@ const tagRouter = router({
 
       return revision;
     }),
+  deleteRequest: protectedProcedure
+    .input(z.object({ requestId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const [request] = await ctx.db
+        .select({
+          id: tagRequests.id,
+          name: tagRequests.name,
+          slug: tagRequests.slug,
+          status: tagRequests.status,
+          requestedBy: tagRequests.requestedBy,
+        })
+        .from(tagRequests)
+        .where(eq(tagRequests.id, input.requestId))
+        .limit(1);
+
+      if (!request) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Request not found.' });
+      }
+
+      if (!ctx.user || request.requestedBy !== ctx.user.id) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Not your request.' });
+      }
+
+      await ctx.db.delete(tagRequests).where(eq(tagRequests.id, request.id));
+
+      if (request.status !== 'approved') {
+        await ctx.db.execute(sql`
+          UPDATE ${posts}
+          SET pending_tag_slugs = (
+            SELECT CASE
+              WHEN COUNT(*) = 0 THEN NULL
+              ELSE jsonb_agg(value)
+            END
+            FROM jsonb_array_elements_text(${posts.pendingTagSlugs}) value
+            WHERE value <> ${request.slug}
+          )
+          WHERE author_id = ${request.requestedBy}
+            AND pending_tag_slugs @> ${JSON.stringify([request.slug])}::jsonb
+        `);
+
+        await ctx.db.execute(sql`
+          UPDATE ${postRevisions}
+          SET tag_names = (
+            SELECT CASE
+              WHEN COUNT(*) = 0 THEN NULL
+              ELSE jsonb_agg(value)
+            END
+            FROM jsonb_array_elements_text(${postRevisions.tagNames}) value
+            WHERE value <> ${request.name}
+          )
+          WHERE author_id = ${request.requestedBy}
+            AND status = 'pending'
+            AND tag_names @> ${JSON.stringify([request.name])}::jsonb
+        `);
+      }
+
+      return { ok: true };
+    }),
 });
 
 const archiveRouter = router({

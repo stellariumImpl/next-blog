@@ -4,6 +4,7 @@ import {
   analyticsPageviews,
   analyticsEvents,
   analyticsFeatureVectors,
+  analyticsSearchRollups,
   analyticsSessions,
   comments,
   commentRevisions,
@@ -199,16 +200,28 @@ export default async function AdminHome() {
       LIMIT 5;
     `);
 
-    const searchHeatRows = await db.execute(sql`
-      SELECT label, COUNT(*)::int AS searches
-      FROM ${analyticsEvents}
-      WHERE created_at >= ${since}
-        AND event_type = 'SEARCH'
-        AND label IS NOT NULL
-      GROUP BY label
+    const searchRollupRows = await db.execute(sql`
+      SELECT term, SUM(searches)::int AS searches
+      FROM ${analyticsSearchRollups}
+      WHERE day >= ${since}
+      GROUP BY term
       ORDER BY searches DESC
       LIMIT 8;
     `);
+
+    const searchHeatRows =
+      (searchRollupRows.rows ?? []).length > 0
+        ? searchRollupRows
+        : await db.execute(sql`
+            SELECT label, COUNT(*)::int AS searches
+            FROM ${analyticsEvents}
+            WHERE created_at >= ${since}
+              AND event_type = 'SEARCH'
+              AND label IS NOT NULL
+            GROUP BY label
+            ORDER BY searches DESC
+            LIMIT 8;
+          `);
 
     const transitionRows = await db.execute(sql`
       WITH ordered AS (
@@ -289,7 +302,7 @@ export default async function AdminHome() {
         totalDuration: Number(row.total_duration ?? 0),
       })),
       searchHeat: (searchHeatRows.rows ?? []).map((row) => ({
-        label: String(row.label ?? ''),
+        label: String((row as { label?: string; term?: string }).label ?? (row as { term?: string }).term ?? ''),
         searches: Number(row.searches ?? 0),
       })),
       topTransitions: (transitionRows.rows ?? []).map((row) => ({
@@ -645,6 +658,46 @@ export default async function AdminHome() {
             </form>
             <p className="text-xs text-zinc-500">
               Exports are filtered by the date range you select.
+            </p>
+          </div>
+        )}
+
+        {!analyticsError && (
+          <div className="border border-zinc-800 rounded p-4 bg-zinc-900/40 space-y-4">
+            <div className="text-xs uppercase text-zinc-500">Search Rollup</div>
+            <form
+              action="/api/admin/analytics/rollup"
+              method="POST"
+              target="_blank"
+              className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm"
+            >
+              <DropdownSelect
+                name="rangeDays"
+                defaultValue="30"
+                className="min-w-0"
+                options={[
+                  { label: "Last 7 days", value: "7" },
+                  { label: "Last 30 days", value: "30" },
+                  { label: "Last 90 days", value: "90" },
+                  { label: "Last 365 days", value: "365" },
+                ]}
+              />
+              <input
+                type="number"
+                name="retentionDays"
+                min={7}
+                defaultValue={90}
+                className="min-w-0 border border-zinc-800 bg-transparent px-3 py-2 text-xs uppercase tracking-[0.3em] text-zinc-400 outline-none focus:border-[color:var(--accent)]"
+              />
+              <button
+                type="submit"
+                className="border border-[#00ff41]/40 px-3 py-2 text-xs uppercase tracking-[0.3em] text-[#00ff41] hover:bg-[#00ff41] hover:text-black transition"
+              >
+                Roll Up
+              </button>
+            </form>
+            <p className="text-xs text-zinc-500">
+              Aggregates SEARCH events and prunes raw SEARCH rows older than the retention window.
             </p>
           </div>
         )}

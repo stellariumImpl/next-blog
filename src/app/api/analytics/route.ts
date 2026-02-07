@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { analyticsEvents, analyticsPageviews, analyticsSessions } from "@/db/schema";
 import { auth } from "@/lib/auth";
@@ -11,6 +11,8 @@ export const runtime = "nodejs";
 
 const MAX_PATH_LENGTH = 2048;
 const MAX_DURATION_MS = 6 * 60 * 60 * 1000;
+const SEARCH_MIN_LENGTH = 2;
+const SEARCH_THROTTLE_MS = 10_000;
 
 const pageViewSchema = z.object({
   type: z.literal("page_view"),
@@ -109,6 +111,13 @@ const hashIp = (ip: string) => {
     process.env.BETTER_AUTH_SECRET ||
     "local-dev-salt";
   return crypto.createHash("sha256").update(`${ip}:${salt}`).digest("hex");
+};
+
+const normalizeLabel = (value?: string | null) => {
+  if (!value) return null;
+  const trimmed = value.trim().replace(/\s+/g, " ");
+  if (!trimmed) return null;
+  return trimmed.slice(0, 140);
 };
 
 export async function POST(req: Request) {
@@ -217,7 +226,7 @@ export async function POST(req: Request) {
         pageId: event.pageId,
         path: event.path,
         eventType: "click",
-        label: event.label ?? null,
+        label: normalizeLabel(event.label) ?? null,
         target: event.target ?? null,
         href: event.href ?? null,
         createdAt: now,
@@ -226,12 +235,39 @@ export async function POST(req: Request) {
     }
 
     if (event.type === "event") {
+      const normalizedLabel = normalizeLabel(event.label);
+      if (event.eventType === "SEARCH") {
+        if (!normalizedLabel || normalizedLabel.length < SEARCH_MIN_LENGTH) {
+          continue;
+        }
+        const recent = await db
+          .select({ createdAt: analyticsEvents.createdAt })
+          .from(analyticsEvents)
+          .where(
+            and(
+              eq(analyticsEvents.sessionId, sessionId),
+              eq(analyticsEvents.eventType, "SEARCH"),
+              eq(analyticsEvents.label, normalizedLabel)
+            )
+          )
+          .orderBy(sql`${analyticsEvents.createdAt} desc`)
+          .limit(1);
+
+        if (recent.length > 0) {
+          const last = recent[0]?.createdAt;
+          const lastTime = last ? new Date(last).getTime() : 0;
+          if (lastTime && now.getTime() - lastTime < SEARCH_THROTTLE_MS) {
+            continue;
+          }
+        }
+      }
+
       await db.insert(analyticsEvents).values({
         sessionId,
         pageId: event.pageId,
         path: event.path,
         eventType: event.eventType,
-        label: event.label ?? null,
+        label: normalizedLabel ?? null,
         target: event.target ?? null,
         href: event.href ?? null,
         createdAt: now,
