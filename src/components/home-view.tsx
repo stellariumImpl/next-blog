@@ -584,52 +584,110 @@ export default function HomeView({
           <div
             className={`px-4 py-2 ${panelBg} border-b ${borderColor} text-[10px] font-bold flex flex-wrap gap-3 justify-between items-center uppercase ${mutedText} tracking-widest`}
           >
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center w-full">
               <span>Archive Range</span>
-              <div className="flex w-full items-center gap-2 sm:w-auto sm:grid-cols-[auto_auto_auto]">
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(event) => handleFromChange(event.target.value)}
-                  className="min-w-0 flex-1 border app-border bg-transparent px-2 py-1 text-[9px] sm:text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none sm:w-auto"
-                />
-                <span className="shrink-0 text-[10px] app-muted text-center">→</span>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(event) => handleToChange(event.target.value)}
-                  className="min-w-0 flex-1 border app-border bg-transparent px-2 py-1 text-[9px] sm:text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none sm:w-auto"
-                />
+              <div className="w-full sm:hidden border app-border bg-[color:var(--panel-bg)]/40 p-4 space-y-4">
+                <div className="space-y-2">
+                  <div className="text-[9px] uppercase tracking-[0.3em] app-muted">
+                    From Date
+                  </div>
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(event) => handleFromChange(event.target.value)}
+                    className="w-full border app-border bg-transparent px-3 py-2 text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="text-[9px] uppercase tracking-[0.3em] app-muted">
+                    To Date
+                  </div>
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(event) => handleToChange(event.target.value)}
+                    className="w-full border app-border bg-transparent px-3 py-2 text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none"
+                  />
+                </div>
+                <div className="grid w-full grid-cols-4 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => presetRange(7)}
+                    className="w-full min-w-0 border app-border px-2 py-2 text-[9px] uppercase tracking-[0.3em] text-[#00ff41] hover:border-[#00ff41] transition"
+                  >
+                    7D
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => presetRange(30)}
+                    className="w-full min-w-0 border app-border px-2 py-2 text-[9px] uppercase tracking-[0.3em] text-[#00ff41] hover:border-[#00ff41] transition"
+                  >
+                    30D
+                  </button>
+                  <button
+                    type="button"
+                    onClick={presetYear}
+                    className="w-full min-w-0 border app-border px-2 py-2 text-[9px] uppercase tracking-[0.3em] text-[#00ff41] hover:border-[#00ff41] transition"
+                  >
+                    1Y
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearRange}
+                    className="w-full min-w-0 border app-border px-2 py-2 text-[9px] uppercase tracking-[0.3em] text-[#00ff41] hover:border-[#00ff41] transition"
+                  >
+                    ALL
+                  </button>
+                </div>
               </div>
-              <div className="grid w-full grid-cols-[repeat(4,minmax(0,1fr))] gap-2 sm:w-auto sm:grid-cols-[auto_auto_auto_auto]">
-                <button
-                  type="button"
-                  onClick={() => presetRange(7)}
-                  className="w-full min-w-0 border app-border px-2 py-1 text-[9px] uppercase tracking-[0.3em] hover:border-[#00ff41] transition"
-                >
-                  7D
-                </button>
-                <button
-                  type="button"
-                  onClick={() => presetRange(30)}
-                  className="w-full min-w-0 border app-border px-2 py-1 text-[9px] uppercase tracking-[0.3em] hover:border-[#00ff41] transition"
-                >
-                  30D
-                </button>
-                <button
-                  type="button"
-                  onClick={presetYear}
-                  className="w-full min-w-0 border app-border px-2 py-1 text-[9px] uppercase tracking-[0.3em] hover:border-[#00ff41] transition"
-                >
-                  12M
-                </button>
-                <button
-                  type="button"
-                  onClick={clearRange}
-                  className="w-full min-w-0 border app-border px-2 py-1 text-[9px] uppercase tracking-[0.3em] hover:border-[#00ff41] transition"
-                >
-                  All
-                </button>
+              <div className="hidden sm:flex sm:items-center sm:gap-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(event) => handleFromChange(event.target.value)}
+                    className="min-w-0 border app-border bg-transparent px-2 py-1 text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none"
+                  />
+                  <span className="shrink-0 text-[10px] app-muted text-center">
+                    →
+                  </span>
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(event) => handleToChange(event.target.value)}
+                    className="min-w-0 border app-border bg-transparent px-2 py-1 text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none"
+                  />
+                </div>
+                <div className="grid grid-cols-[auto_auto_auto_auto] gap-2">
+                  <button
+                    type="button"
+                    onClick={() => presetRange(7)}
+                    className="min-w-0 border app-border px-2 py-1 text-[9px] uppercase tracking-[0.3em] hover:border-[#00ff41] transition"
+                  >
+                    7D
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => presetRange(30)}
+                    className="min-w-0 border app-border px-2 py-1 text-[9px] uppercase tracking-[0.3em] hover:border-[#00ff41] transition"
+                  >
+                    30D
+                  </button>
+                  <button
+                    type="button"
+                    onClick={presetYear}
+                    className="min-w-0 border app-border px-2 py-1 text-[9px] uppercase tracking-[0.3em] hover:border-[#00ff41] transition"
+                  >
+                    12M
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearRange}
+                    className="min-w-0 border app-border px-2 py-1 text-[9px] uppercase tracking-[0.3em] hover:border-[#00ff41] transition"
+                  >
+                    All
+                  </button>
+                </div>
               </div>
             </div>
             <div className="hidden md:flex space-x-2">
