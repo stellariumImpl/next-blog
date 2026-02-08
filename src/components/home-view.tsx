@@ -582,9 +582,9 @@ export default function HomeView({
       <main className="max-w-screen-2xl mx-auto px-6 py-12">
         <div className={`border ${borderColor} ${cardBg} overflow-hidden`}>
           <div
-            className={`px-4 py-2 ${panelBg} border-b ${borderColor} text-[10px] font-bold flex flex-wrap gap-3 justify-between items-center uppercase ${mutedText} tracking-widest`}
+            className={`px-4 py-2 ${panelBg} border-b ${borderColor} text-[10px] font-bold flex items-start sm:items-center uppercase ${mutedText} tracking-widest`}
           >
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center w-full">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center flex-1 min-w-0">
               <span>Archive Range</span>
               <div className="w-full sm:hidden border app-border bg-[color:var(--panel-bg)]/40 p-4 space-y-4">
                 <div className="space-y-2">
@@ -690,7 +690,7 @@ export default function HomeView({
                 </div>
               </div>
             </div>
-            <div className="hidden md:flex space-x-2">
+            <div className="hidden md:flex space-x-2 ml-4">
               <span className="w-2 h-2 bg-zinc-800 rounded-full"></span>
               <span className="w-2 h-2 bg-zinc-800 rounded-full"></span>
               <span className="w-2 h-2 bg-[#00ff41] rounded-full"></span>
