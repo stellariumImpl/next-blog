@@ -595,7 +595,7 @@ export default function HomeView({
                     type="date"
                     value={dateFrom}
                     onChange={(event) => handleFromChange(event.target.value)}
-                    className="block h-12 w-full max-w-full min-w-0 box-border appearance-none border app-border bg-transparent px-3 py-3 text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none"
+                    className="block h-10 w-full max-w-full min-w-0 box-border appearance-none border app-border bg-transparent px-3 py-3 text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none"
                   />
                 </div>
                 <div className="space-y-2">
@@ -606,7 +606,7 @@ export default function HomeView({
                     type="date"
                     value={dateTo}
                     onChange={(event) => handleToChange(event.target.value)}
-                    className="block h-12 w-full max-w-full min-w-0 box-border appearance-none border app-border bg-transparent px-3 py-3 text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none"
+                    className="block h-10 w-full max-w-full min-w-0 box-border appearance-none border app-border bg-transparent px-3 py-3 text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none"
                   />
                 </div>
                 <div className="grid w-full grid-cols-4 gap-3">
