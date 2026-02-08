@@ -586,7 +586,7 @@ export default function HomeView({
           >
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center flex-1 min-w-0">
               <span>Archive Range</span>
-              <div className="w-full sm:hidden border app-border bg-[color:var(--panel-bg)]/40 p-4 space-y-4">
+              <div className="w-full sm:hidden border app-border bg-[color:var(--panel-bg)]/40 p-4 space-y-4 overflow-hidden">
                 <div className="space-y-2">
                   <div className="text-[9px] uppercase tracking-[0.3em] app-muted">
                     From Date
@@ -595,7 +595,7 @@ export default function HomeView({
                     type="date"
                     value={dateFrom}
                     onChange={(event) => handleFromChange(event.target.value)}
-                    className="w-full border app-border bg-transparent px-3 py-2 text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none"
+                    className="block w-full max-w-full min-w-0 box-border appearance-none border app-border bg-transparent px-3 py-2 text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none"
                   />
                 </div>
                 <div className="space-y-2">
@@ -606,7 +606,7 @@ export default function HomeView({
                     type="date"
                     value={dateTo}
                     onChange={(event) => handleToChange(event.target.value)}
-                    className="w-full border app-border bg-transparent px-3 py-2 text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none"
+                    className="block w-full max-w-full min-w-0 box-border appearance-none border app-border bg-transparent px-3 py-2 text-[10px] uppercase tracking-[0.2em] app-muted focus:border-[var(--app-text)] outline-none"
                   />
                 </div>
                 <div className="grid w-full grid-cols-4 gap-3">
