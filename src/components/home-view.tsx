@@ -746,7 +746,7 @@ export default function HomeView({
               >
                 <div className="flex flex-col md:flex-row py-12 px-8">
                   <div
-                    className={`md:w-32 text-[10px] ${mutedText} font-black mb-4 md:mb-0 group-hover:text-[#00ff41] transition-colors`}
+                    className={`md:w-32 md:pr-8 text-[10px] ${mutedText} font-black mb-6 md:mb-0 group-hover:text-[#00ff41] transition-colors`}
                   >
                     [{post.id.slice(0, 6).toUpperCase()}]
                   </div>
@@ -819,19 +819,32 @@ export default function HomeView({
                               No tags
                             </span>
                           ) : (
-                            post.tags.map((t) => (
-                              <Link
-                                key={t.slug}
-                                href={`/tags/${t.slug}`}
-                                className={`text-[9px] px-1 border ${
-                                  isDark
-                                    ? "text-[#00ff41] border-[#00ff41]/40 bg-[#00ff41]/10"
-                                    : "text-[color:var(--accent)] border-[color:var(--accent)]/60 bg-[color:var(--accent)]/15"
-                                }`}
-                              >
-                                {t.name}
-                              </Link>
-                            ))
+                            <>
+                              {post.tags.slice(0, 5).map((t) => (
+                                <Link
+                                  key={t.slug}
+                                  href={`/tags/${t.slug}`}
+                                  className={`text-[9px] px-1 border ${
+                                    isDark
+                                      ? "text-[#00ff41] border-[#00ff41]/40 bg-[#00ff41]/10"
+                                      : "text-[color:var(--accent)] border-[color:var(--accent)]/60 bg-[color:var(--accent)]/15"
+                                  }`}
+                                >
+                                  {t.name}
+                                </Link>
+                              ))}
+                              {post.tags.length > 5 && (
+                                <span
+                                  className={`text-[9px] px-1 border border-dashed ${
+                                    isDark
+                                      ? "text-[#00ff41]/70 border-[#00ff41]/30"
+                                      : "text-[color:var(--accent)]/70 border-[color:var(--accent)]/30"
+                                  }`}
+                                >
+                                  +{post.tags.length - 5}
+                                </span>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>

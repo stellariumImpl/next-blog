@@ -25,6 +25,7 @@ export default async function AccountPage() {
   const userId = session.user.id;
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const theme = getTheme();
+  const isDark = theme === 'dark';
   const viewerProfile = session?.user
     ? await ensureUserProfile({ id: session.user.id, email: session.user.email })
     : null;
@@ -315,7 +316,12 @@ export default async function AccountPage() {
                         .filter(Boolean)
                         .join(', ');
                       return (
-                        <div key={session.id} className="border app-border/60 p-3">
+                        <div
+                          key={session.id}
+                          className={`border ${
+                            isDark ? 'border-zinc-800/50' : 'app-border/60'
+                          } p-3`}
+                        >
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <div className="text-xs uppercase tracking-[0.3em] app-muted">
                               {session.os ?? '--'} · {session.browser ?? '--'}

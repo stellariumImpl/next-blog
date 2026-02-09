@@ -113,6 +113,7 @@ export default async function PostPage({
   params: { slug: string };
 }) {
   const theme = getTheme();
+  const isDark = theme === "dark";
   const proseClass =
     "prose max-w-none [color:var(--text-muted-strong)] prose-headings:[color:var(--app-text)] prose-strong:[color:var(--app-text)] prose-a:text-[color:var(--accent)]";
   const session = await auth.api.getSession({ headers: await headers() });
@@ -157,6 +158,50 @@ export default async function PostPage({
   ) {
     notFound();
   }
+
+  const [authorProfile] = await db
+    .select({
+      id: user.id,
+      name: user.name,
+      image: user.image,
+      createdAt: user.createdAt,
+      role: userProfiles.role,
+    })
+    .from(user)
+    .leftJoin(userProfiles, eq(user.id, userProfiles.userId))
+    .where(eq(user.id, post.authorId))
+    .limit(1);
+
+  const [authorPostCount, authorCommentCount, authorTagCount] =
+    await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)`.mapWith(Number) })
+        .from(posts)
+        .where(and(eq(posts.authorId, post.authorId), eq(posts.status, "published")))
+        .limit(1),
+      db
+        .select({ count: sql<number>`count(*)`.mapWith(Number) })
+        .from(comments)
+        .where(
+          and(
+            eq(comments.authorId, post.authorId),
+            eq(comments.status, "approved")
+          )
+        )
+        .limit(1),
+      db
+        .select({ count: sql<number>`count(*)`.mapWith(Number) })
+        .from(tags)
+        .where(eq(tags.createdBy, post.authorId))
+        .limit(1),
+    ]);
+
+  const authorName = authorProfile?.name || "Member";
+  const authorInitial = authorName.trim().charAt(0).toUpperCase() || "U";
+  const authorRole = authorProfile?.role === "admin" ? "Admin" : "Member";
+  const authorPosts = authorPostCount?.[0]?.count ?? 0;
+  const authorComments = authorCommentCount?.[0]?.count ?? 0;
+  const authorTags = authorTagCount?.[0]?.count ?? 0;
 
   const isAuthor = viewerId && viewerId === post.authorId;
   const edited =
@@ -403,6 +448,87 @@ export default async function PostPage({
                 />
               </div>
             </article>
+
+            <section className="mt-8 border app-border panel-bg p-4">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-12 w-12 rounded-full border app-border bg-[color:var(--panel-bg)]/60 overflow-hidden flex items-center justify-center text-xs uppercase tracking-[0.3em] app-text">
+                    {authorProfile?.image ? (
+                      <img
+                        src={authorProfile.image}
+                        alt={authorName}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span>{authorInitial}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs uppercase tracking-[0.3em] app-muted">
+                      Author
+                    </div>
+                    <Link
+                      href={`/about/${post.authorId}`}
+                      className="text-lg font-semibold app-text hover:text-[#00ff41] transition truncate block"
+                    >
+                      {authorName}
+                    </Link>
+                    <div className="text-xs app-muted">
+                      {authorRole} · Member since{" "}
+                      {authorProfile?.createdAt ? (
+                        <TimeStamp value={authorProfile.createdAt} />
+                      ) : (
+                        "--"
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <Link
+                  href={`/about/${post.authorId}`}
+                  className="text-xs uppercase tracking-[0.3em] text-[#00ff41] hover:underline"
+                >
+                  View profile →
+                </Link>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                <div
+                  className={`border ${
+                    isDark ? "border-zinc-800/50" : "app-border/60"
+                  } px-2 py-2`}
+                >
+                  <div className="text-[9px] uppercase tracking-[0.3em] app-muted">
+                    Posts
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-[#00ff41]">
+                    {authorPosts}
+                  </div>
+                </div>
+                <div
+                  className={`border ${
+                    isDark ? "border-zinc-800/50" : "app-border/60"
+                  } px-2 py-2`}
+                >
+                  <div className="text-[9px] uppercase tracking-[0.3em] app-muted">
+                    Comments
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-[#00ff41]">
+                    {authorComments}
+                  </div>
+                </div>
+                <div
+                  className={`border ${
+                    isDark ? "border-zinc-800/50" : "app-border/60"
+                  } px-2 py-2`}
+                >
+                  <div className="text-[9px] uppercase tracking-[0.3em] app-muted">
+                    Tags
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-[#00ff41]">
+                    {authorTags}
+                  </div>
+                </div>
+              </div>
+            </section>
 
             <CommentThread
               comments={displayComments}

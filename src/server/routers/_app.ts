@@ -14,6 +14,7 @@ import {
   tags,
 } from '@/db/schema';
 import { removeAlgoliaPost, upsertAlgoliaPost } from '@/lib/algolia';
+import { generateTagSlug, normalizeUserSlug } from '@/lib/tag-slug';
 import { adminProcedure, protectedProcedure, publicProcedure, router } from '@/server/trpc';
 
 const postInput = z.object({
@@ -87,28 +88,8 @@ const slugFromText = (value: string, maxLength: number, fallback: string) => {
   return `${fallback}-${Date.now().toString(36).slice(-6)}`.slice(0, maxLength);
 };
 
-const hashString = (value: string) => {
-  let hash = 0;
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash * 31 + value.charCodeAt(i)) | 0;
-  }
-  return Math.abs(hash).toString(36).slice(0, 6);
-};
-
 const normalizeTagName = (value: string) =>
   value.trim().replace(/\s+/g, ' ').slice(0, 64);
-
-const slugFromTagName = (value: string) => {
-  const base = value
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^\p{L}\p{N}-]/gu, '')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  if (base.length > 0) return base.slice(0, 64);
-  return `tag-${hashString(value)}`.slice(0, 64);
-};
 
 const MAX_SETTINGS_CODE_SIZE = 50000;
 const isValidFaviconUrl = (value: string) =>
@@ -155,7 +136,7 @@ const resolveTagInputs = async ({
 
   const slugMap = new Map<string, string>();
   for (const name of normalizedNames) {
-    const slug = slugFromTagName(name);
+    const slug = await generateTagSlug(name);
     if (!slugMap.has(slug)) {
       slugMap.set(slug, name);
     }
@@ -276,7 +257,7 @@ const resolveApprovedTags = async ({
 
   const slugMap = new Map<string, string>();
   for (const name of normalizedNames) {
-    const slug = slugFromTagName(name);
+    const slug = await generateTagSlug(name);
     if (!slugMap.has(slug)) {
       slugMap.set(slug, name);
     }
@@ -811,8 +792,15 @@ const tagRouter = router({
     .mutation(async ({ ctx, input }) => {
       const isAdmin = ctx.profile?.role === 'admin';
       const rawSlug = input.slug?.trim() ?? '';
+      const normalizedSlug = rawSlug.length > 0 ? normalizeUserSlug(rawSlug) : '';
+      if (normalizedSlug === null) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Slug can only contain lowercase letters and numbers.',
+        });
+      }
       const finalSlug =
-        rawSlug.length > 0 ? rawSlug.slice(0, 64) : slugFromTagName(input.name);
+        normalizedSlug.length > 0 ? normalizedSlug : await generateTagSlug(input.name);
 
       const existingByKey = await ctx.db
         .select()
@@ -921,11 +909,18 @@ const tagRouter = router({
       const rawSlug = input.slug?.trim() ?? '';
       const hasName = rawName.length > 0;
       const hasSlug = rawSlug.length > 0;
+      const normalizedSlug = hasSlug ? normalizeUserSlug(rawSlug) : '';
 
       if (!hasName && !hasSlug) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
           message: 'Name or slug is required.',
+        });
+      }
+      if (normalizedSlug === null) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Slug can only contain lowercase letters and numbers.',
         });
       }
 
@@ -941,9 +936,9 @@ const tagRouter = router({
 
       const nextName = hasName ? rawName.slice(0, 64) : existingTag.name;
       const nextSlug = hasSlug
-        ? rawSlug.slice(0, 64)
+        ? normalizedSlug
         : hasName
-          ? slugFromTagName(nextName)
+          ? await generateTagSlug(nextName)
           : existingTag.slug;
 
       if (nextSlug !== existingTag.slug) {
