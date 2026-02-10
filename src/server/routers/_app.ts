@@ -13,7 +13,12 @@ import {
   tagRevisions,
   tags,
 } from '@/db/schema';
-import { removeAlgoliaPost, upsertAlgoliaPost } from '@/lib/algolia';
+import {
+  removeAlgoliaPost,
+  removeAlgoliaTag,
+  upsertAlgoliaPost,
+  upsertAlgoliaTag,
+} from '@/lib/algolia';
 import { generateTagSlug, normalizeUserSlug } from '@/lib/tag-slug';
 import { adminProcedure, protectedProcedure, publicProcedure, router } from '@/server/trpc';
 
@@ -839,6 +844,13 @@ const tagRouter = router({
             approvedBy: ctx.user.id,
           })
           .returning();
+        if (createdTag) {
+          try {
+            await upsertAlgoliaTag(ctx.db, createdTag.id);
+          } catch (error) {
+            console.warn('tag sync failed', createdTag.id, error);
+          }
+        }
         return createdTag;
       }
 
@@ -958,6 +970,13 @@ const tagRouter = router({
           .set({ name: nextName, slug: nextSlug })
           .where(eq(tags.id, existingTag.id))
           .returning();
+        if (updated) {
+          try {
+            await upsertAlgoliaTag(ctx.db, updated.id);
+          } catch (error) {
+            console.warn('tag sync failed', updated.id, error);
+          }
+        }
         return updated;
       }
 
@@ -1486,6 +1505,11 @@ const adminRouter = router({
             WHERE pending_tag_slugs @> ${JSON.stringify([slug])}::jsonb
           `);
         }
+        try {
+          await upsertAlgoliaTag(ctx.db, createdTag.id);
+        } catch (error) {
+          console.warn('tag sync failed', createdTag.id, error);
+        }
       }
 
       const [updated] = await ctx.db
@@ -1518,6 +1542,13 @@ const adminRouter = router({
         .set({ name: revision.name, slug: revision.slug })
         .where(eq(tags.id, revision.tagId))
         .returning();
+      if (updatedTag) {
+        try {
+          await upsertAlgoliaTag(ctx.db, updatedTag.id);
+        } catch (error) {
+          console.warn('tag sync failed', updatedTag.id, error);
+        }
+      }
 
       await ctx.db
         .update(tagRevisions)
@@ -1565,6 +1596,7 @@ const adminRouter = router({
       await ctx.db.delete(postTags).where(eq(postTags.tagId, input.tagId));
       await ctx.db.delete(tagRevisions).where(eq(tagRevisions.tagId, input.tagId));
       await ctx.db.delete(tags).where(eq(tags.id, input.tagId));
+      await removeAlgoliaTag(input.tagId);
       return { ok: true };
     }),
   getSiteSettings: adminProcedure.query(async ({ ctx }) => {

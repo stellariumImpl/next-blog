@@ -43,6 +43,14 @@ function insertAtCursor(
   });
 }
 
+const arrayEquals = (a: string[], b: string[]) => {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+};
+
 export default function PostEditorForm({
   action,
   tags = [],
@@ -107,8 +115,9 @@ export default function PostEditorForm({
 
   useEffect(() => {
     if (tagTouchedRef.current) return;
+    if (arrayEquals(tagNames, resolvedInitialTags)) return;
     setTagNames(resolvedInitialTags);
-  }, [resolvedInitialTags]);
+  }, [resolvedInitialTags, tagNames]);
 
   const handleTagChange = (next: string[]) => {
     tagTouchedRef.current = true;
@@ -254,13 +263,6 @@ export default function PostEditorForm({
     submitLabel ??
     (mode === "create" ? (isAdmin ? "Publish" : "Submit") : isAdmin ? "Save" : "Submit Update");
 
-  const normalizedTagSet = useMemo(() => {
-    return new Set(tagNames.map((tag) => tag.toLowerCase()));
-  }, [tagNames]);
-  const suggestedTags = useMemo(
-    () => tags.filter((tag) => !normalizedTagSet.has(tag.name.toLowerCase())),
-    [tags, normalizedTagSet],
-  );
   const flashSystemMsg = useUIStore((state) => state.flashSystemMsg);
 
   return (
@@ -316,27 +318,6 @@ export default function PostEditorForm({
               : "No approved tags yet. New tags will be reviewed."
           }
         />
-        {suggestedTags.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.3em] app-muted">
-            <span>Approved tags:</span>
-            {suggestedTags.map((tag) => (
-              <button
-                key={tag.id}
-                type="button"
-                onClick={() =>
-                  setTagNames((prev) =>
-                    prev.some((item) => item.toLowerCase() === tag.name.toLowerCase())
-                      ? prev
-                      : [...prev, tag.name],
-                  )
-                }
-                className="border app-border px-2 py-1 hover:border-[#00ff41] transition"
-              >
-                {tag.name}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="border app-border panel-bg p-4 space-y-3">
