@@ -40,26 +40,26 @@ export default function CodeBlock({
   };
 
   return (
-    <div className="relative my-4 rounded-lg border border-[color:var(--border)] bg-[color:var(--panel-bg)] overflow-hidden group">
+    <div className="relative my-4 w-full max-w-full box-border rounded-lg border border-[color:var(--border)] bg-[color:var(--panel-bg)] overflow-hidden group">
       {/* Header bar */}
       <div className="flex items-center justify-between px-4 py-1 border-b border-[color:var(--border)] bg-[color:var(--panel-bg)]">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <div className="hidden md:flex gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]"></div>
             <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]"></div>
             <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]"></div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             {dataFilename && (
-              <span className="text-xs font-medium text-[color:var(--app-text)]">
+              <span className="text-xs font-medium text-[color:var(--app-text)] truncate">
                 {dataFilename}
               </span>
             )}
-            <span className="text-xs font-mono text-[color:var(--text-muted)]">
+            <span className="text-xs font-mono text-[color:var(--text-muted)] truncate">
               {language}
             </span>
             {dataDescription && (
-              <span className="text-xs text-[color:var(--text-muted)]">
+              <span className="text-xs text-[color:var(--text-muted)] truncate">
                 {dataDescription}
               </span>
             )}
@@ -85,8 +85,14 @@ export default function CodeBlock({
       </div>
 
       {/* Code content */}
-      <pre className="overflow-x-auto m-0 p-0" style={{ borderRadius: 0 }}>
-        <code ref={codeRef} className={`${className} block p-4`}>
+      <pre
+        className="overflow-x-auto m-0 p-0 w-full max-w-full box-border"
+        style={{ borderRadius: 0 }}
+      >
+        <code
+          ref={codeRef}
+          className={`${className} block p-4 w-full max-w-full box-border`}
+        >
           {children}
         </code>
       </pre>

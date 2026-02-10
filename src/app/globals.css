@@ -267,14 +267,18 @@ html.spotlight-on.spotlight-dark body::before {
 
 .markdown-content pre {
   background: transparent;
-  border: 1px solid var(--border);
   border-radius: 8px;
   overflow-x: auto;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .markdown-content pre code {
   display: block;
   padding: 1rem;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .markdown-content code {
@@ -335,12 +339,29 @@ html.spotlight-on.spotlight-dark body::before {
 
   .markdown-content pre {
     max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .markdown-content pre code {
+    max-width: 100%;
+    box-sizing: border-box;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .markdown-content .hljs {
+    max-width: 100%;
   }
 
   .markdown-content table {
     display: block;
+    width: fit-content;
     max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -352,6 +373,8 @@ html.spotlight-on.spotlight-dark body::before {
   .markdown-content svg {
     max-width: 100%;
     height: auto;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .markdown-content code {
