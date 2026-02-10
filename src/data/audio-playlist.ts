@@ -17,7 +17,71 @@ export type AudioTrack = {
 // 孤独患者-陈奕迅.mp3
 // 青い栞-Galileo-Galilei.mp3
 
+// 留住我吧-太极.mp3
+// Wonderwall-Oasis.mp3
+// Setting-Sun-Live-Radio-Broadcast-Oasis.mp3
+// With-or-without-you-U2.mp3
+// 1234567-方大同.mp3
+// Beautiful-Day-U2.mp3
+// Desperado-Eagles.mp3
+// Dont-Look-Back-in-Anger-Oasis.mp3
+// Ramblin-Man-The-Allman-Brothers-band.mp3
+
 export const audioPlaylist: AudioTrack[] = [
+  {
+    id: "dont-look-back-in-anger-oasis",
+    title: "Don't Look Back in Anger",
+    artist: "Oasis",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/Dont-Look-Back-in-Anger-Oasis.mp3",
+  },
+  {
+    id: "desperado-eagles",
+    title: "Desperado",
+    artist: "Eagles",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/Desperado-Eagles.mp3",
+  },
+  {
+    id: "beautiful-day-u2",
+    title: "Beautiful Day",
+    artist: "U2",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/Beautiful-Day-U2.mp3",
+  },
+  {
+    id: "1234567-方大同",
+    title: "1234567",
+    artist: "方大同",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/1234567-方大同.mp3",
+  },
+  {
+    id: "ramblin-man-the-allman-brothers-band",
+    title: "Ramblin' Man",
+    artist: "The Allman Brothers Band",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/Ramblin-Man-The-Allman-Brothers-band.mp3",
+  },
+  {
+    id: "with-or-without-you-u2",
+    title: "With or Without You",
+    artist: "U2",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/With-or-without-you-U2.mp3",
+  },
+  {
+    id: "setting-sun",
+    title: "Setting Sun",
+    artist: "Oasis",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/Setting-Sun-Live-Radio-Broadcast-Oasis.mp3",
+  },
+  {
+    id: "liu-zhu-wo-ba",
+    title: "留住我吧",
+    artist: "太极",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/留住我吧-太极.mp3",
+  },
+  {
+    id: "wonderwall-oasis",
+    title: "Wonderwall",
+    artist: "Oasis",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/Wonderwall-Oasis.mp3",
+  },
   {
     id: "blue-shiori",
     title: "青い栞",
