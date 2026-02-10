@@ -744,16 +744,16 @@ export default function HomeView({
                 key={post.id}
                 className={`group relative border-b ${borderColor} hover:bg-[#00ff41]/5 transition-all duration-300`}
               >
-                <div className="flex flex-col md:flex-row py-12 px-8">
+                <div className="flex flex-col md:flex-row py-8 px-6 md:py-12 md:px-8">
                   <div
-                    className={`md:w-32 md:pr-8 text-[10px] ${mutedText} font-black mb-6 md:mb-0 group-hover:text-[#00ff41] transition-colors`}
+                    className={`md:w-32 md:pr-8 text-[9px] md:text-[10px] ${mutedText} font-black mb-3 md:mb-0 group-hover:text-[#00ff41] transition-colors`}
                   >
                     [{post.id.slice(0, 6).toUpperCase()}]
                   </div>
                   <div className="flex-grow">
                     <Link
                       href={`/posts/${post.slug}`}
-                      className={`block text-2xl md:text-4xl font-black transition-all uppercase mb-4 cursor-pointer ${
+                      className={`block text-xl md:text-4xl font-black transition-all uppercase mb-3 md:mb-4 cursor-pointer ${
                         isDark
                           ? "text-zinc-300 group-hover:text-white"
                           : "text-zinc-700 group-hover:text-black"
@@ -775,8 +775,79 @@ export default function HomeView({
                       </div>
                     )}
 
+                    <div className="md:hidden flex flex-wrap items-center gap-3 text-[9px] uppercase tracking-[0.25em] app-muted mb-3">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-2.5 h-2.5" />
+                        {post.status === "published" ? "Published" : "Submitted"}
+                      </span>
+                      <TimeStamp
+                        value={
+                          post.status === "published"
+                            ? (post.publishedAt ?? post.createdAt)
+                            : post.createdAt
+                        }
+                        className={mutedText}
+                      />
+                      <span className="flex items-center gap-1">
+                        <History className="w-2.5 h-2.5" />
+                        Updated
+                      </span>
+                      <TimeStamp value={post.updatedAt} className={mutedText} />
+                    </div>
+
+                    <div className="md:hidden flex flex-wrap items-center gap-2 text-[10px] mb-4">
+                      <div className={`flex items-center gap-2 ${mutedText}`}>
+                        <span className="flex items-center">
+                          <Eye className="w-3 h-3 mr-1" /> {post.stats.views}
+                        </span>
+                        <span className="flex items-center">
+                          <Heart className="w-3 h-3 mr-1" />{" "}
+                          {post.stats.likes}
+                        </span>
+                        <span className="flex items-center">
+                          <MessageSquare className="w-3 h-3 mr-1" />{" "}
+                          {post.stats.comments}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="md:hidden flex gap-1 flex-wrap mb-4">
+                      {post.tags.length === 0 ? (
+                        <span className={`text-[9px] ${mutedText}`}>
+                          No tags
+                        </span>
+                      ) : (
+                        <>
+                          {post.tags.slice(0, 3).map((t) => (
+                            <Link
+                              key={t.slug}
+                              href={`/tags/${t.slug}`}
+                              className={`text-[9px] px-1.5 py-0.5 border ${
+                                isDark
+                                  ? "text-[#00ff41] border-[#00ff41]/40 bg-[#00ff41]/10"
+                                  : "text-[color:var(--accent)] border-[color:var(--accent)]/60 bg-[color:var(--accent)]/15"
+                              }`}
+                            >
+                              {t.name}
+                            </Link>
+                          ))}
+                          {post.tags.length > 3 && (
+                            <span
+                              className={`text-[9px] px-1.5 py-0.5 border border-dashed ${
+                                isDark
+                                  ? "text-[#00ff41]/70 border-[#00ff41]/30"
+                                  : "text-[color:var(--accent)]/70 border-[color:var(--accent)]/30"
+                              }`}
+                            >
+                              +{post.tags.length - 3}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+
                     <div
-                      className={`grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 border ${panelBorder} ${panelBg}`}
+                      className={`hidden md:grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 border ${panelBorder} ${panelBg}`}
                     >
                       <div className="flex flex-col space-y-1">
                         <span
@@ -868,19 +939,19 @@ export default function HomeView({
                     </div>
 
                     <p
-                      className={`text-[11px] leading-relaxed uppercase font-bold mb-8 ${mutedText} ${
+                      className={`text-[11px] leading-relaxed uppercase font-bold mb-6 md:mb-8 ${mutedText} ${
                         isDark
                           ? "group-hover:text-zinc-400"
                           : "group-hover:text-zinc-600"
-                      }`}
+                      } line-clamp-2 md:line-clamp-none`}
                     >
                       // {post.excerpt || "No excerpt available yet."}
                     </p>
 
-                    <div className="flex items-center space-x-6">
+                    <div className="flex items-center gap-4 md:gap-6">
                       <Link
                         href={`/posts/${post.slug}`}
-                        className="text-[10px] font-bold text-[#00ff41] border border-[#00ff41]/30 px-3 py-1 hover:bg-[#00ff41] hover:text-black transition-all flex items-center"
+                        className="text-[10px] font-bold text-[#00ff41] border border-[#00ff41]/30 px-3 py-1.5 hover:bg-[#00ff41] hover:text-black transition-all flex items-center"
                       >
                         <ArrowUpRight className="w-3 h-3 mr-2" />
                         Read Article
@@ -896,7 +967,7 @@ export default function HomeView({
                   </div>
                   <Link
                     href={`/posts/${post.slug}`}
-                    className="mt-8 md:mt-0 text-zinc-800 group-hover:text-[#00ff41] transition-colors"
+                    className="hidden md:block mt-8 md:mt-0 text-zinc-800 group-hover:text-[#00ff41] transition-colors"
                     aria-label={`Open ${post.title}`}
                   >
                     <ArrowUpRight className="w-8 h-6" />
