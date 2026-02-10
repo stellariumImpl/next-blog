@@ -42,7 +42,7 @@ export default function PostToc({ headings }: { headings: HeadingItem[] }) {
 
   return (
     <>
-      <div className="xl:hidden border app-border panel-bg p-4">
+      <div className="hidden md:block xl:hidden border app-border panel-bg p-4">
         <details>
           <summary className="flex cursor-pointer items-center gap-2 text-xs uppercase tracking-[0.3em] app-muted">
             <List className="h-3 w-3" />

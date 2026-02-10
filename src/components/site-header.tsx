@@ -17,6 +17,7 @@ import {
   X,
   Loader2,
   Menu,
+  List,
   User as UserIcon,
   LogOut,
 } from "lucide-react";
@@ -25,6 +26,8 @@ import { useEffectiveTheme, useUIStore } from "@/store/ui";
 import { useFeedFilterStore } from "@/store/feed-filter";
 import { trackCustomEvent } from "@/lib/analytics-client";
 import { authClient } from "@/lib/auth-client";
+import type { HeadingItem } from "@/lib/markdown";
+import PostTocDrawer from "@/components/post-toc-drawer";
 
 export default function SiteHeader({
   viewer,
@@ -32,6 +35,7 @@ export default function SiteHeader({
   refreshOnToggle = false,
   searchItems = [],
   initialTheme,
+  tocHeadings,
 }: {
   viewer: Viewer | null;
   active?: "archive" | "tags";
@@ -45,6 +49,7 @@ export default function SiteHeader({
     publishedAt?: string;
   }[];
   initialTheme: "dark" | "light";
+  tocHeadings?: HeadingItem[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -95,6 +100,7 @@ export default function SiteHeader({
   const [searchError, setSearchError] = useState("");
   const lastTrackedSearchRef = useRef<{ query: string; at: number } | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [tocOpen, setTocOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const borderColor = isDark ? "border-zinc-800" : "border-zinc-300";
   const navBg = isDark ? "bg-black/90" : "bg-white/90";
@@ -125,6 +131,7 @@ export default function SiteHeader({
     }
   }
   const homeHref = homeParams.toString() ? `/?${homeParams.toString()}` : "/";
+  const hasToc = !!tocHeadings && tocHeadings.length > 0;
 
   const handleToggle = () => {
     toggleTheme();
@@ -406,6 +413,21 @@ export default function SiteHeader({
 
             <UserMenu viewer={viewer} hardNavigate={forceHardNav} />
             </div>
+            {hasToc && (
+              <button
+                type="button"
+                onClick={() => setTocOpen(true)}
+                className={`md:hidden flex items-center gap-2 px-2 h-7 border ${borderColor} ${
+                  isDark ? "hover:bg-zinc-800" : "hover:bg-zinc-200"
+                }`}
+                aria-label="Open table of contents"
+              >
+                <List className="h-3 w-3" />
+                <span className="text-[9px] uppercase tracking-[0.3em] whitespace-nowrap">
+                  On this page
+                </span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setMobileMenuOpen(true)}
@@ -419,6 +441,15 @@ export default function SiteHeader({
           </div>
         </div>
       </nav>
+
+      {hasToc && (
+        <PostTocDrawer
+          headings={tocHeadings ?? []}
+          open={tocOpen}
+          onClose={() => setTocOpen(false)}
+          isDark={isDark}
+        />
+      )}
 
       {mobileMenuOpen && (
         <div

@@ -332,7 +332,11 @@ export default async function PostPage({
 
   return (
     <div className="min-h-screen app-bg">
-      <SiteHeader viewer={viewer} initialTheme={theme} />
+      <SiteHeader
+        viewer={viewer}
+        initialTheme={theme}
+        tocHeadings={hasToc ? headings : undefined}
+      />
       <div className="max-w-6xl mx-auto px-6 sm:px-6 pt-24 pb-28 sm:pb-24">
         <div
           className={
