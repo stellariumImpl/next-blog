@@ -26,8 +26,15 @@ export type AudioTrack = {
 // Desperado-Eagles.mp3
 // Dont-Look-Back-in-Anger-Oasis.mp3
 // Ramblin-Man-The-Allman-Brothers-band.mp3
+// Dancehall-Tribes#1ALO5.mp3
 
 export const audioPlaylist: AudioTrack[] = [
+  {
+    id: "dancehall-tribes-1-alo5",
+    title: "Dancehall",
+    artist: "Tribes",
+    src: "https://raw.githubusercontent.com/stellariumImpl/blog-assets/master/audio/Dancehall-Tribes.mp3",
+  },
   {
     id: "dont-look-back-in-anger-oasis",
     title: "Don't Look Back in Anger",
