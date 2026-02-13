@@ -383,24 +383,6 @@ export default async function PostPage({
                 trackView={post.status === "published"}
                 showSignIn={!viewerId}
               />
-              <div className="mt-4 border app-border panel-bg p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-xs uppercase tracking-[0.3em] app-muted">
-                    Excerpt
-                  </div>
-                  {(isAuthor || isAdmin) && (
-                    <Link
-                      href={`/posts/${params.slug}/edit?autogenExcerpt=1#excerpt`}
-                      className="inline-flex items-center justify-center border app-border px-2 py-1 text-[10px] uppercase tracking-[0.25em] app-muted hover:text-[color:var(--accent)] transition w-full sm:w-auto"
-                    >
-                      Auto Fill Excerpt
-                    </Link>
-                  )}
-                </div>
-                <p className="mt-2 text-sm app-muted-strong break-words">
-                  {post.excerpt || "No excerpt available yet."}
-                </p>
-              </div>
               {post.status !== "published" && (
                 <div className="mt-6 border app-border panel-bg p-4">
                   <div className="flex items-center justify-between gap-3">
