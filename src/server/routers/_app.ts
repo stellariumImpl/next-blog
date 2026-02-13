@@ -1660,6 +1660,38 @@ const adminRouter = router({
       await removeAlgoliaTag(input.tagId);
       return { ok: true };
     }),
+  deleteTags: adminProcedure
+    .input(
+      z.object({
+        tagIds: z.array(z.string().uuid()).min(1).max(200),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const uniqueTagIds = Array.from(new Set(input.tagIds));
+      const existing = await ctx.db
+        .select({ id: tags.id })
+        .from(tags)
+        .where(inArray(tags.id, uniqueTagIds));
+      const existingIds = existing.map((item) => item.id);
+      if (existingIds.length === 0) {
+        return { ok: true, deleted: 0 };
+      }
+
+      await ctx.db.delete(postTags).where(inArray(postTags.tagId, existingIds));
+      await ctx.db.delete(tagRevisions).where(inArray(tagRevisions.tagId, existingIds));
+      await ctx.db.delete(tags).where(inArray(tags.id, existingIds));
+
+      const syncResults = await Promise.allSettled(
+        existingIds.map((id) => removeAlgoliaTag(id))
+      );
+      syncResults.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.warn('tag delete sync failed', existingIds[index], result.reason);
+        }
+      });
+
+      return { ok: true, deleted: existingIds.length };
+    }),
   getSiteSettings: adminProcedure.query(async ({ ctx }) => {
     const [row] = await ctx.db
       .select({

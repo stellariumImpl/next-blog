@@ -47,12 +47,19 @@ async function rejectTagEditAction(formData: FormData) {
   revalidatePath('/admin/tags');
 }
 
-async function deleteTagAction(formData: FormData) {
+async function deleteTagsAction(formData: FormData) {
   'use server';
-  const tagId = formData.get('tagId') as string | null;
-  if (!tagId) return;
+  const tagIds = Array.from(
+    new Set(
+      formData
+        .getAll('tagIds')
+        .map((value) => String(value))
+        .filter(Boolean)
+    )
+  );
+  if (tagIds.length === 0) return;
   const caller = await getCaller();
-  await caller.admin.deleteTag({ tagId });
+  await caller.admin.deleteTags({ tagIds });
   revalidatePath('/admin/tags');
   revalidatePath('/tags');
   revalidatePath('/');
@@ -157,7 +164,12 @@ export default async function AdminTags() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Approved Tags</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold">Approved Tags</h2>
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">
+            Select tags then batch delete
+          </p>
+        </div>
         {tagList.length === 0 ? (
           <EmptyState
             icon={<Inbox className="h-5 w-5" />}
@@ -165,29 +177,44 @@ export default async function AdminTags() {
             description="Approved tags will appear in this list."
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {tagList.map((tag) => (
-              <div key={tag.id} className="border border-zinc-800 bg-zinc-950/60 p-4">
-                <div className="text-xs uppercase tracking-[0.3em] text-zinc-500">Tag</div>
-                <div className="mt-2 text-lg font-semibold text-white">{tag.name}</div>
-                <div className="text-xs text-zinc-500">/{tag.slug}</div>
-                <div className="mt-4 flex gap-3">
-                  <Link
-                    href={`/tags/${tag.slug}`}
-                    className="border border-[#00ff41]/40 px-3 py-1 text-xs uppercase tracking-[0.3em] text-[#00ff41] hover:bg-[#00ff41] hover:text-black transition"
-                  >
-                    Edit
-                  </Link>
-                  <form action={deleteTagAction}>
-                    <input type="hidden" name="tagId" value={tag.id} />
-                    <button className="border border-red-500/40 px-3 py-1 text-xs uppercase tracking-[0.3em] text-red-400 hover:bg-red-500 hover:text-black transition">
-                      Delete
-                    </button>
-                  </form>
-                </div>
-              </div>
-            ))}
-          </div>
+          <form action={deleteTagsAction} className="space-y-4">
+            <div className="flex justify-end">
+              <button
+                className="border border-red-500/40 px-3 py-1 text-xs uppercase tracking-[0.3em] text-red-400 hover:bg-red-500 hover:text-black transition"
+                type="submit"
+              >
+                Delete Selected
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {tagList.map((tag) => (
+                <label
+                  key={tag.id}
+                  className="border border-zinc-800 bg-zinc-950/60 p-4 flex cursor-pointer gap-3"
+                >
+                  <input
+                    type="checkbox"
+                    name="tagIds"
+                    value={tag.id}
+                    className="mt-1 h-4 w-4 accent-[#00ff41]"
+                  />
+                  <div className="min-w-0">
+                    <div className="text-xs uppercase tracking-[0.3em] text-zinc-500">Tag</div>
+                    <div className="mt-2 text-lg font-semibold text-white">{tag.name}</div>
+                    <div className="text-xs text-zinc-500">/{tag.slug}</div>
+                    <div className="mt-4 flex gap-3">
+                      <Link
+                        href={`/tags/${tag.slug}`}
+                        className="border border-[#00ff41]/40 px-3 py-1 text-xs uppercase tracking-[0.3em] text-[#00ff41] hover:bg-[#00ff41] hover:text-black transition"
+                      >
+                        Edit
+                      </Link>
+                    </div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </form>
         )}
       </section>
     </div>
