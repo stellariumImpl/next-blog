@@ -40,9 +40,12 @@ export default function CodeBlock({
   };
 
   return (
-    <div className="relative my-4 w-full max-w-full box-border rounded-lg border border-[color:var(--border)] bg-[color:var(--panel-bg)] overflow-hidden group">
+    <div
+      data-code-block
+      className="code-block-shell relative my-4 w-full max-w-full box-border rounded-lg border border-[color:var(--border)] bg-[color:var(--panel-bg)] overflow-hidden group"
+    >
       {/* Header bar */}
-      <div className="flex items-center justify-between px-4 py-1 border-b border-[color:var(--border)] bg-[color:var(--panel-bg)]">
+      <div className="code-block-header flex items-center justify-between px-4 py-1 border-b border-[color:var(--border)] bg-[color:var(--panel-bg)]">
         <div className="flex items-center gap-3 min-w-0">
           <div className="hidden md:flex gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]"></div>
@@ -86,12 +89,12 @@ export default function CodeBlock({
 
       {/* Code content */}
       <pre
-        className="overflow-x-auto m-0 p-0 w-full max-w-full box-border"
+        className="code-block-pre overflow-x-auto m-0 p-0 w-full max-w-full box-border"
         style={{ borderRadius: 0 }}
       >
         <code
           ref={codeRef}
-          className={`${className} block p-4 w-full max-w-full box-border`}
+          className={`code-block-code ${className ?? ""} block p-4 w-full max-w-full box-border`}
         >
           {children}
         </code>
