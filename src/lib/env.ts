@@ -22,6 +22,9 @@ const baseSchema = z.object({
   GITHUB_ASSETS_REPO: z.string().optional(),
   GITHUB_ASSETS_TOKEN: z.string().optional(),
   GITHUB_ASSETS_BRANCH: z.string().optional(),
+  CLOUDFLARE_ACCOUNT_ID: z.string().optional(),
+  CLOUDFLARE_API_TOKEN: z.string().optional(),
+  CLOUDFLARE_AI_MODEL: z.string().optional(),
 });
 
 export const env = baseSchema.parse({
@@ -46,6 +49,9 @@ export const env = baseSchema.parse({
   GITHUB_ASSETS_REPO: process.env.GITHUB_ASSETS_REPO,
   GITHUB_ASSETS_TOKEN: process.env.GITHUB_ASSETS_TOKEN,
   GITHUB_ASSETS_BRANCH: process.env.GITHUB_ASSETS_BRANCH,
+  CLOUDFLARE_ACCOUNT_ID: process.env.CLOUDFLARE_ACCOUNT_ID,
+  CLOUDFLARE_API_TOKEN: process.env.CLOUDFLARE_API_TOKEN,
+  CLOUDFLARE_AI_MODEL: process.env.CLOUDFLARE_AI_MODEL,
 });
 
 export function parseAdminEmails(value?: string) {

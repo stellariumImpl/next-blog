@@ -19,6 +19,7 @@ import {
   upsertAlgoliaPost,
   upsertAlgoliaTag,
 } from '@/lib/algolia';
+import { resolvePostExcerpt } from '@/lib/excerpt';
 import { generateTagSlug, normalizeUserSlug } from '@/lib/tag-slug';
 import { adminProcedure, protectedProcedure, publicProcedure, router } from '@/server/trpc';
 
@@ -36,7 +37,7 @@ const postEditInput = z
   .object({
     postId: z.string().uuid(),
     title: z.string().min(1).max(256).optional(),
-    excerpt: z.string().min(1).max(500).optional(),
+    excerpt: z.string().max(500).nullable().optional(),
     content: z.string().min(1).optional(),
     tagIds: z.array(z.string().uuid()).optional(),
     tagNames: z.array(z.string().min(1).max(64)).optional(),
@@ -44,9 +45,9 @@ const postEditInput = z
   })
   .refine(
     (data) =>
-      data.title ||
-      data.excerpt ||
-      data.content ||
+      data.title !== undefined ||
+      data.excerpt !== undefined ||
+      data.content !== undefined ||
       data.tagIds !== undefined ||
       data.tagNames !== undefined,
     {
@@ -326,6 +327,8 @@ const postRouter = router({
     }
     const userId = ctx.user.id;
 
+    const normalizedInputExcerpt = input.excerpt?.trim() || null;
+    const normalizedInputContent = input.content?.trim() || null;
     const existingByKey = await ctx.db
       .select()
       .from(posts)
@@ -343,8 +346,8 @@ const postRouter = router({
         and(
           eq(posts.authorId, userId),
           eq(posts.title, input.title),
-          sql`coalesce(${posts.excerpt}, '') = ${input.excerpt ?? ''}`,
-          sql`coalesce(${posts.content}, '') = ${input.content ?? ''}`,
+          sql`coalesce(${posts.excerpt}, '') = ${normalizedInputExcerpt ?? ''}`,
+          sql`coalesce(${posts.content}, '') = ${normalizedInputContent ?? ''}`,
           gte(posts.createdAt, dedupeSince)
         )
       )
@@ -375,6 +378,11 @@ const postRouter = router({
       tagNames: input.tagNames,
       isAdmin,
     });
+    const resolvedExcerpt = await resolvePostExcerpt({
+      title: input.title,
+      content: normalizedInputContent,
+      excerpt: normalizedInputExcerpt,
+    });
 
     const inserted = await ctx.db
       .insert(posts)
@@ -383,8 +391,8 @@ const postRouter = router({
         title: input.title,
         slug: finalSlug,
         idempotencyKey: input.idempotencyKey,
-        excerpt: input.excerpt,
-        content: input.content,
+        excerpt: resolvedExcerpt,
+        content: normalizedInputContent,
         pendingTagSlugs: pendingTagSlugs.length > 0 ? pendingTagSlugs : null,
         status: isAdmin ? 'published' : 'pending',
         publishedAt: isAdmin ? now : null,
@@ -445,6 +453,15 @@ const postRouter = router({
       }
       const userId = ctx.user.id;
       const isAdmin = ctx.profile?.role === 'admin';
+      const normalizedEditExcerpt =
+        input.excerpt === undefined
+          ? undefined
+          : input.excerpt === null
+            ? null
+            : input.excerpt.trim();
+      const normalizedEditContent =
+        input.content === undefined ? undefined : input.content.trim();
+
       if (!isAdmin && existing[0].authorId !== ctx.user.id) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Not your post.' });
       }
@@ -466,12 +483,22 @@ const postRouter = router({
       }
 
       if (isAdmin) {
+        const nextTitle = input.title ?? existing[0].title;
+        const nextContent = normalizedEditContent ?? existing[0].content ?? null;
+        const nextExcerpt = await resolvePostExcerpt({
+          title: nextTitle,
+          content: nextContent,
+          excerpt:
+            normalizedEditExcerpt === undefined
+              ? existing[0].excerpt
+              : normalizedEditExcerpt,
+        });
         const updatePayload: Partial<typeof posts.$inferInsert> = {
           updatedAt: new Date(),
+          excerpt: nextExcerpt ?? null,
         };
         if (input.title) updatePayload.title = input.title;
-        if (input.excerpt) updatePayload.excerpt = input.excerpt;
-        if (input.content) updatePayload.content = input.content;
+        if (normalizedEditContent !== undefined) updatePayload.content = normalizedEditContent;
         await ctx.db.update(posts).set(updatePayload).where(eq(posts.id, input.postId));
         if (input.tagIds !== undefined || input.tagNames !== undefined) {
           const { resolvedTagIds } = await resolveTagInputs({
@@ -498,6 +525,7 @@ const postRouter = router({
       }
 
       let resolvedTagIds: string[] | undefined = undefined;
+      let revisionExcerpt: string | null | undefined = undefined;
       if (input.tagIds !== undefined || input.tagNames !== undefined) {
         resolvedTagIds = (await resolveTagInputs({
           db: ctx.db,
@@ -507,6 +535,16 @@ const postRouter = router({
           isAdmin: false,
         })).resolvedTagIds;
       }
+      if (normalizedEditExcerpt !== undefined || !existing[0].excerpt) {
+        revisionExcerpt =
+          (await resolvePostExcerpt({
+            title: input.title ?? existing[0].title,
+            content: normalizedEditContent ?? existing[0].content ?? null,
+            excerpt: normalizedEditExcerpt,
+          })) ?? null;
+      }
+      const effectiveRevisionExcerpt =
+        revisionExcerpt === undefined ? existing[0].excerpt ?? null : revisionExcerpt;
 
       const dedupeSince = new Date(Date.now() - 10 * 60 * 1000);
       const duplicateRevision = await ctx.db
@@ -519,8 +557,8 @@ const postRouter = router({
             eq(postRevisions.status, 'pending'),
             gte(postRevisions.createdAt, dedupeSince),
             sql`coalesce(${postRevisions.title}, '') = ${input.title ?? ''}`,
-            sql`coalesce(${postRevisions.excerpt}, '') = ${input.excerpt ?? ''}`,
-            sql`coalesce(${postRevisions.content}, '') = ${input.content ?? ''}`,
+            sql`coalesce(${postRevisions.excerpt}, '') = ${effectiveRevisionExcerpt ?? ''}`,
+            sql`coalesce(${postRevisions.content}, '') = ${normalizedEditContent ?? ''}`,
             sql`coalesce(${postRevisions.tagNames}, 'null'::jsonb) = ${JSON.stringify(
               input.tagNames ?? null
             )}::jsonb`,
@@ -542,8 +580,8 @@ const postRouter = router({
           authorId: userId,
           idempotencyKey: input.idempotencyKey,
           title: input.title,
-          excerpt: input.excerpt,
-          content: input.content,
+          excerpt: effectiveRevisionExcerpt,
+          content: normalizedEditContent,
           tagIds: resolvedTagIds ?? undefined,
           tagNames: input.tagNames ?? undefined,
           status: 'pending',
@@ -1229,6 +1267,7 @@ const adminRouter = router({
         title: postRevisions.title,
         excerpt: postRevisions.excerpt,
         content: postRevisions.content,
+        tagIds: postRevisions.tagIds,
         tagNames: postRevisions.tagNames,
         createdAt: postRevisions.createdAt,
         status: postRevisions.status,
@@ -1254,12 +1293,34 @@ const adminRouter = router({
       }
 
       const patch = revision[0];
+      const currentPost = await ctx.db
+        .select({
+          title: posts.title,
+          excerpt: posts.excerpt,
+          content: posts.content,
+        })
+        .from(posts)
+        .where(eq(posts.id, patch.postId))
+        .limit(1);
+
+      if (currentPost.length === 0) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found.' });
+      }
+
+      const nextTitle = patch.title ?? currentPost[0].title;
+      const nextContent = patch.content ?? currentPost[0].content;
+      const requestedExcerpt = patch.excerpt;
+      const nextExcerpt = await resolvePostExcerpt({
+        title: nextTitle,
+        content: nextContent,
+        excerpt: requestedExcerpt,
+      });
       const now = new Date();
       const updatePayload: Partial<typeof posts.$inferInsert> = {
         updatedAt: now,
+        excerpt: nextExcerpt ?? null,
       };
       if (patch.title) updatePayload.title = patch.title;
-      if (patch.excerpt) updatePayload.excerpt = patch.excerpt;
       if (patch.content) updatePayload.content = patch.content;
 
       await ctx.db

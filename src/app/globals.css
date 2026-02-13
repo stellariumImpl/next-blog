@@ -253,6 +253,8 @@ html.spotlight-on.spotlight-dark body::before {
 .markdown-content h3,
 .markdown-content h4 {
   color: var(--app-text);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .markdown-content a {
@@ -263,6 +265,14 @@ html.spotlight-on.spotlight-dark body::before {
   border-left: 2px solid var(--accent);
   padding-left: 1rem;
   color: var(--text-muted);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.markdown-content p,
+.markdown-content li {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .markdown-content pre {

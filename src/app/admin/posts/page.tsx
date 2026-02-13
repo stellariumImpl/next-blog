@@ -8,6 +8,13 @@ import StatusPill from '@/components/ui/status-pill';
 import { Inbox, FileCheck, Layers } from 'lucide-react';
 import Link from 'next/link';
 
+function compactText(value: string | null | undefined, max = 180) {
+  if (!value) return '';
+  const compact = value.replace(/\s+/g, ' ').trim();
+  if (compact.length <= max) return compact;
+  return `${compact.slice(0, max - 1)}...`;
+}
+
 async function approvePostAction(formData: FormData) {
   'use server';
   const postId = formData.get('postId') as string | null;
@@ -129,8 +136,16 @@ export default async function AdminPosts() {
               <div key={post.id} className="border border-zinc-800 bg-zinc-950/60 p-4">
                 <div className="text-xs uppercase tracking-[0.3em] text-zinc-500">Draft</div>
                 <div className="mt-2 text-lg font-semibold text-white">{post.title}</div>
-                {post.excerpt && <p className="mt-2 text-sm text-zinc-400">{post.excerpt}</p>}
+                <p className="mt-2 text-sm text-zinc-400 break-all">
+                  {compactText(post.excerpt ?? post.content, 220) || 'No excerpt provided.'}
+                </p>
                 <div className="mt-4 flex gap-3">
+                  <Link
+                    href={`/admin/posts/pending/${post.id}`}
+                    className="border border-zinc-700 px-3 py-1 text-xs uppercase tracking-[0.3em] text-zinc-200 hover:bg-zinc-800 transition"
+                  >
+                    Preview
+                  </Link>
                   <form action={approvePostAction}>
                     <input type="hidden" name="postId" value={post.id} />
                     <input type="hidden" name="slug" value={post.slug} />
@@ -168,25 +183,24 @@ export default async function AdminPosts() {
                 <div className="mt-2 text-sm text-zinc-400">
                   Post: {revision.postTitle ?? revision.postId}
                 </div>
-                {revision.title && (
-                  <div className="mt-2">
-                    <div className="text-xs uppercase text-zinc-500">Title</div>
-                    <div className="text-white">{revision.title}</div>
-                  </div>
-                )}
-                {revision.excerpt && (
-                  <div className="mt-2">
-                    <div className="text-xs uppercase text-zinc-500">Excerpt</div>
-                    <div className="text-zinc-400">{revision.excerpt}</div>
-                  </div>
-                )}
-                {revision.content && (
-                  <div className="mt-2">
-                    <div className="text-xs uppercase text-zinc-500">Content</div>
-                    <div className="text-zinc-400 whitespace-pre-line">{revision.content}</div>
-                  </div>
-                )}
+                <div className="mt-2 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.25em] text-zinc-500">
+                  {revision.title ? <span className="border border-zinc-800 px-2 py-1">Title</span> : null}
+                  {revision.excerpt ? <span className="border border-zinc-800 px-2 py-1">Excerpt</span> : null}
+                  {revision.content ? <span className="border border-zinc-800 px-2 py-1">Content</span> : null}
+                  {revision.tagNames || revision.tagIds ? (
+                    <span className="border border-zinc-800 px-2 py-1">Tags</span>
+                  ) : null}
+                </div>
+                <p className="mt-3 text-sm text-zinc-400 break-all">
+                  {compactText(revision.excerpt ?? revision.content, 220) || 'No content preview.'}
+                </p>
                 <div className="mt-4 flex gap-3">
+                  <Link
+                    href={`/admin/posts/revisions/${revision.id}`}
+                    className="border border-zinc-700 px-3 py-1 text-xs uppercase tracking-[0.3em] text-zinc-200 hover:bg-zinc-800 transition"
+                  >
+                    Preview
+                  </Link>
                   <form action={approvePostEditAction}>
                     <input type="hidden" name="revisionId" value={revision.id} />
                     <input type="hidden" name="slug" value={revision.slug} />

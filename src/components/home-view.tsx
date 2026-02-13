@@ -753,7 +753,7 @@ export default function HomeView({
                   <div className="flex-grow">
                     <Link
                       href={`/posts/${post.slug}`}
-                      className={`block text-xl md:text-4xl font-black transition-all uppercase mb-3 md:mb-4 cursor-pointer ${
+                      className={`block text-xl md:text-4xl font-black transition-all uppercase mb-3 md:mb-4 cursor-pointer break-all ${
                         isDark
                           ? "text-zinc-300 group-hover:text-white"
                           : "text-zinc-700 group-hover:text-black"
@@ -943,7 +943,7 @@ export default function HomeView({
                         isDark
                           ? "group-hover:text-zinc-400"
                           : "group-hover:text-zinc-600"
-                      } line-clamp-2 md:line-clamp-none`}
+                      } line-clamp-2 md:line-clamp-none break-all`}
                     >
                       // {post.excerpt || "No excerpt available yet."}
                     </p>

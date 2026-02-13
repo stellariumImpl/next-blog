@@ -19,8 +19,13 @@ async function editPostAction(
   'use server';
 
   const title = (formData.get('title') as string | null)?.trim() || undefined;
+  const excerptRaw = formData.get('excerpt') as string | null;
   const excerpt =
-    (formData.get('excerpt') as string | null)?.trim() || undefined;
+    excerptRaw === null
+      ? undefined
+      : excerptRaw.trim() === ''
+        ? null
+        : excerptRaw.trim();
   const content =
     (formData.get('content') as string | null)?.trim() || undefined;
   const idempotencyKey =
@@ -31,7 +36,12 @@ async function editPostAction(
     .map((value) => String(value))
     .filter(Boolean);
 
-  if (!title && !excerpt && !content && !tagNamesProvided) {
+  if (
+    title === undefined &&
+    excerpt === undefined &&
+    content === undefined &&
+    !tagNamesProvided
+  ) {
     return { ok: false, message: 'Provide at least one field to update.' };
   }
   if (!idempotencyKey) {
@@ -63,7 +73,13 @@ async function editPostAction(
   }
 }
 
-export default async function EditPostPage({ params }: { params: { slug: string } }) {
+export default async function EditPostPage({
+  params,
+  searchParams,
+}: {
+  params: { slug: string };
+  searchParams?: { autogenExcerpt?: string };
+}) {
   const { session } = await requireUser();
   if (!session?.user) {
     redirect('/sign-in');
@@ -141,6 +157,7 @@ export default async function EditPostPage({ params }: { params: { slug: string 
           initialTagIds={selectedTagIds}
           initialTagNames={selectedTagNames}
           isAdmin={isAdmin}
+          autoGenerateExcerpt={searchParams?.autogenExcerpt === '1'}
           submitLabel={isAdmin ? 'Save Changes' : 'Submit Update'}
         />
       </div>
