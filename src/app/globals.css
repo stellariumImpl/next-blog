@@ -483,9 +483,9 @@ html.spotlight-on.spotlight-dark body::before {
   border-color: #cbc4b8;
 }
 
-:root[data-theme="light"] .code-block-pre {
+/* :root[data-theme="light"] .code-block-pre {
   background: #eef2f7;
-}
+} */
 
 :root[data-theme="light"] .code-block-code {
   color: #1f2937 !important;
